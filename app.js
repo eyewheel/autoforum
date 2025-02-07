@@ -10,19 +10,18 @@ const port = 3000;
 // Middleware to serve static files
 app.use(express.static('public'));
 
-// Custom renderer to wrap paragraphs with unique IDs
+// Custom renderer to wrap paragraphs
 const renderer = new marked.Renderer();
 let paragraphCounter = 0;
 
 renderer.paragraph = (token) => {
     const id = `p-${paragraphCounter++}`;
-
-    // Extract the text content from the token
     const content = typeof token === 'object' ? token.text : token;
-
     return `<div class="paragraph-container">
-              <div class="paragraph" id="${id}">
-                ${content}
+              <div class="paragraph-text-wrapper">
+                <div class="paragraph" id="${id}">
+                  ${content}
+                </div>
               </div>
               <div class="tag-icons" data-for="${id}"></div>
             </div>`;
@@ -48,17 +47,13 @@ app.get('/:filename', async (req, res) => {
         const filename = req.params.filename;
         const markdownPath = path.join(__dirname, 'content', `${filename}.md`);
 
-        // Reset paragraph counter for each file
-        paragraphCounter = 0;
+        paragraphCounter = 0; // Reset paragraph counter for each file
 
-        // Read and convert markdown
         const markdownContent = await fs.readFile(markdownPath, 'utf8');
         const htmlContent = await parser.parse(markdownContent);
 
-        // Read template
         const template = await fs.readFile(path.join(__dirname, 'views', 'template.html'), 'utf8');
 
-        // Replace placeholders
         const fullHtml = template
             .replace('{{title}}', filename)
             .replace('{{content}}', htmlContent);

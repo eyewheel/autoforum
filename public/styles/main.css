@@ -1,20 +1,49 @@
 /* public/styles/main.css */
 body {
-    max-width: 800px;
+    max-width: 1200px;
     margin: 0 auto;
     padding: 20px;
     font-family: -apple-system, system-ui, BlinkMacSystemFont,
                 "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
     line-height: 1.6;
     color: #333;
+    display: flex;
+    justify-content: center;
+    position: relative; /* Added relative positioning to body */
 }
 
-.paragraph-container {
+#content {
+    flex-grow: 1;
+    max-width: 800px;
+    margin-right: 20px;
+}
+
+#tag-sidebar {
+    width: 200px;
+    padding: 20px;
+    box-sizing: border-box;
+    overflow-y: auto;
+    position: absolute; /* Changed to absolute positioning */
+    top: 20px; /* Adjust top margin to match content padding */
+    right: 20px; /* Adjust right margin to match content spacing */
+    height: calc(100% - 40px); /* Adjust height to account for top/bottom margins */
     display: flex;
-    align-items: flex-start;
+    flex-direction: column;
+}
+
+
+.paragraph-container {
     margin: 1em 0;
     position: relative;
+    display: block;
 }
+
+.paragraph-text-wrapper {
+    display: flex;
+    flex-direction: row;
+    align-items: baseline;
+}
+
 
 .paragraph {
     flex-grow: 1;
@@ -88,6 +117,59 @@ body {
     background-color: #e8f5e9;
 }
 
+/* Styles for selection-based tagging */
+.tagged-selection {
+    position: relative;
+    cursor: pointer; /* Indicate clickable tagged text */
+}
+
+.selection-tag-icon {
+    display: inline-flex;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background-color: #eee;
+    color: #333;
+    font-size: 12px;
+    justify-content: center;
+    align-items: center;
+    margin-bottom: 4px;
+    position: absolute;
+    right: 10px;
+    position: relative;
+}
+
+.tag-management-menu {
+    position: absolute;
+    /* right: 100%; Position to the left of the icon */
+    top: 0;
+    background-color: white;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    padding: 5px;
+    display: none; /* Hidden by default, toggled by JS */
+    z-index: 10; /* Ensure it's above other elements */
+    flex-direction: column;
+}
+
+.tag-management-menu button {
+    background: none;
+    border: none;
+    padding: 5px;
+    margin: 0 2px;
+    cursor: pointer;
+    border-radius: 3px;
+}
+
+.tag-management-menu button:hover {
+    background-color: #f0f0f0;
+}
+
+.tag-management-menu button[title^="Change tag to important"] { color: #d32f2f; }
+.tag-management-menu button[title^="Change tag to question"]  { color: #1976d2; }
+.tag-management-menu button[title^="Change tag to definition"] { color: #388e3c; }
+.tag-management-menu button[title="Delete tag"] { color: #777; }
+
 pre {
     background-color: #f6f8fa;
     padding: 16px;
@@ -97,4 +179,18 @@ pre {
 
 code {
     font-family: Consolas, Monaco, 'Andale Mono', monospace;
+}
+
+/* Example tag icon colors (customize as needed) */
+.selection-tag-icon-important {
+    background-color: #ffebee;
+    color: #d32f2f;
+}
+.selection-tag-icon-question {
+    background-color: #e3f2fd;
+    color: #1976d2;
+}
+.selection-tag-icon-definition {
+    background-color: #e8f5e9;
+    color: #388e3c;
 }
