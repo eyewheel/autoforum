@@ -1,0 +1,100 @@
+/* public/styles/main.css */
+body {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 20px;
+    font-family: -apple-system, system-ui, BlinkMacSystemFont,
+                "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    line-height: 1.6;
+    color: #333;
+}
+
+.paragraph-container {
+    display: flex;
+    align-items: flex-start;
+    margin: 1em 0;
+    position: relative;
+}
+
+.paragraph {
+    flex-grow: 1;
+    padding: 0.5em;
+    border-radius: 4px;
+    transition: background-color 0.2s;
+}
+
+.paragraph:hover {
+    background-color: #f5f5f5;
+}
+
+.tag-icons {
+    margin-left: 10px;
+    display: flex;
+    flex-direction: row;
+    gap: 8px;
+    opacity: 0;
+    transition: opacity 0.2s;
+}
+
+.paragraph-container:hover .tag-icons {
+    opacity: 1;
+}
+
+.tag-button {
+    width: 32px;
+    height: 32px;
+    border: none;
+    border-radius: 50%;
+    background-color: white;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #666;
+    font-size: 16px;
+    transition: transform 0.1s, background-color 0.2s;
+}
+
+.tag-button:hover {
+    transform: scale(1.1);
+}
+
+.tag-button.active {
+    background-color: #e0e0e0;
+}
+
+.tag-button[data-tag="important"] {
+    color: #d32f2f;
+}
+
+.tag-button[data-tag="question"] {
+    color: #1976d2;
+}
+
+.tag-button[data-tag="definition"] {
+    color: #388e3c;
+}
+
+.paragraph.tagged-important {
+    background-color: #ffebee;
+}
+
+.paragraph.tagged-question {
+    background-color: #e3f2fd;
+}
+
+.paragraph.tagged-definition {
+    background-color: #e8f5e9;
+}
+
+pre {
+    background-color: #f6f8fa;
+    padding: 16px;
+    border-radius: 6px;
+    overflow-x: auto;
+}
+
+code {
+    font-family: Consolas, Monaco, 'Andale Mono', monospace;
+}
