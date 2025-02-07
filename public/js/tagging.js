@@ -8,9 +8,10 @@ document.addEventListener('DOMContentLoaded', function() {
 
     let selectionTags = {}; // In-memory storage
     let tagCounter = 0;
+    const localStorageKey = 'markdownTagging_selectionTags'; // Define localStorage key
 
     // Load tags from LocalStorage on page load
-    const storedTags = localStorage.getItem('selectionTags');
+    const storedTags = localStorage.getItem(localStorageKey);
     if (storedTags) {
         selectionTags = JSON.parse(storedTags);
         // Re-render tags on load
@@ -20,7 +21,6 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     function getCurrentSelection() {
-        // ... (getCurrentSelection function - same as before) ...
         const selection = window.getSelection();
         if (!selection || selection.isCollapsed) {
             return null;
@@ -32,7 +32,11 @@ document.addEventListener('DOMContentLoaded', function() {
             return null;
         }
 
-        const selectedText = selection.toString();
+        const selectedText = selection.toString().trim(); // Trimmed selected text
+        if (!selectedText) { // Check for empty selection after trimming
+            return null;
+        }
+
         const paragraphText = paragraph.textContent;
         const startIndex = paragraphText.indexOf(selectedText, paragraphText.indexOf(range.startContainer.textContent.trimStart()));
         const endIndex = startIndex + selectedText.length;
@@ -136,8 +140,6 @@ document.addEventListener('DOMContentLoaded', function() {
                         const sidebarTop = verticalCenter - sidebarRect.top - contentRect.left;
 
                         tagIconSpan.style.top = `${sidebarTop}px`;
-                        // tagIconSpan.style.position = 'absolute';
-                        // tagIconSpan.style.right = '10px';
                     }
                 }, 0);
 
@@ -155,7 +157,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
 
         // Save to LocalStorage after rendering
-        localStorage.setItem('selectionTags', JSON.stringify(selectionTags));
+        localStorage.setItem(localStorageKey, JSON.stringify(selectionTags));
     }
 
 
@@ -201,12 +203,30 @@ document.addEventListener('DOMContentLoaded', function() {
     document.querySelectorAll('.tag-icons').forEach(iconContainer => {
         const paragraphId = iconContainer.getAttribute('data-for');
 
+        // Create Trigger Icon
+        const triggerIcon = document.createElement('button');
+        triggerIcon.className = 'trigger-icon';
+        triggerIcon.innerHTML = '+'; // Or any other icon
+        triggerIcon.title = 'Add Tag';
+        triggerIcon.addEventListener('click', () => {
+            const selectionInfo = getCurrentSelection();
+            if (selectionInfo) {
+                // Trigger tag type selection UI here (next step)
+                console.log('Trigger icon clicked. Selected text:', selectionInfo.selectedText);
+                // For now, let's just log the selection info
+            } else {
+                console.log('No valid text selection.');
+            }
+        });
+        iconContainer.appendChild(triggerIcon);
+
+
         Object.entries(tagIcons).forEach(([tagType, icon]) => {
             const button = document.createElement('button');
             button.className = 'tag-button';
             button.setAttribute('data-tag', tagType);
             button.innerHTML = icon;
-
+            button.style.display = 'none'; // Initially hide tag type buttons
             button.addEventListener('click', () => {
                 const selectionInfo = getCurrentSelection();
                 if (selectionInfo) {
@@ -238,4 +258,37 @@ document.addEventListener('DOMContentLoaded', function() {
             iconContainer.appendChild(button);
         });
     });
+
+    let currentSelection = null; // Store current selection info
+
+    document.addEventListener('mouseup', function(event) {
+        console.log('mouseup event');
+        currentSelection = getCurrentSelection();
+        document.querySelectorAll('.tag-icons').forEach(iconContainer => {
+            console.log('iconContainer', iconContainer);
+            if (currentSelection && currentSelection.paragraph.parentElement.parentElement === iconContainer.parentElement) { // Check if selection is in the paragraph associated with this iconContainer
+                iconContainer.classList.add('selection-active'); // Show trigger icon
+                // Hide tag type buttons for now, will be shown in next step
+                iconContainer.querySelectorAll('.tag-button').forEach(button => button.style.display = 'none');
+            } else {
+                iconContainer.classList.remove('selection-active'); // Hide trigger icon
+                // Hide tag type buttons
+                iconContainer.querySelectorAll('.tag-button').forEach(button => button.style.display = 'none');
+            }
+        });
+    });
+
+    document.addEventListener('mousedown', function(event) {
+        // Clear selection when clicking outside of a paragraph (or maybe always on mousedown to simplify)
+        if (!event.target.closest('.paragraph-container')) {
+            window.getSelection().removeAllRanges();
+            currentSelection = null;
+            document.querySelectorAll('.tag-icons').forEach(iconContainer => {
+                iconContainer.classList.remove('selection-active'); // Hide trigger icon
+                // Hide tag type buttons
+                iconContainer.querySelectorAll('.tag-button').forEach(button => button.style.display = 'none');
+            });
+        }
+    });
+
 });

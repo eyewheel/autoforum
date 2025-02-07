@@ -6,10 +6,10 @@ body {
     font-family: -apple-system, system-ui, BlinkMacSystemFont,
                 "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
     line-height: 1.6;
-    color: #333;
+    color: #afafaf;
     display: flex;
     justify-content: center;
-    position: relative; /* Added relative positioning to body */
+    position: relative;
 }
 
 #content {
@@ -23,152 +23,31 @@ body {
     padding: 20px;
     box-sizing: border-box;
     overflow-y: auto;
-    position: absolute; /* Changed to absolute positioning */
-    top: 20px; /* Adjust top margin to match content padding */
-    right: 20px; /* Adjust right margin to match content spacing */
-    height: calc(100% - 40px); /* Adjust height to account for top/bottom margins */
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    height: calc(100% - 40px);
     display: flex;
     flex-direction: column;
 }
-
 
 .paragraph-container {
     margin: 1em 0;
     position: relative;
-    display: block;
+    display: flex; /* Use flexbox for paragraph and icons */
+    flex-direction: row;
+    align-items: flex-start; /* Align items to the start, important for layout */
 }
 
 .paragraph-text-wrapper {
-    display: flex;
-    flex-direction: row;
-    align-items: baseline;
+    flex-grow: 1; /* Paragraph text takes available space */
 }
 
-
 .paragraph {
-    flex-grow: 1;
     padding: 0.5em;
     border-radius: 4px;
     transition: background-color 0.2s;
 }
-
-.paragraph:hover {
-    background-color: #f5f5f5;
-}
-
-.tag-icons {
-    margin-left: 10px;
-    display: flex;
-    flex-direction: row;
-    gap: 8px;
-    opacity: 0;
-    transition: opacity 0.2s;
-}
-
-.paragraph-container:hover .tag-icons {
-    opacity: 1;
-}
-
-.tag-button {
-    width: 32px;
-    height: 32px;
-    border: none;
-    border-radius: 50%;
-    background-color: white;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: #666;
-    font-size: 16px;
-    transition: transform 0.1s, background-color 0.2s;
-}
-
-.tag-button:hover {
-    transform: scale(1.1);
-}
-
-.tag-button.active {
-    background-color: #e0e0e0;
-}
-
-.tag-button[data-tag="important"] {
-    color: #d32f2f;
-}
-
-.tag-button[data-tag="question"] {
-    color: #1976d2;
-}
-
-.tag-button[data-tag="definition"] {
-    color: #388e3c;
-}
-
-.paragraph.tagged-important {
-    background-color: #ffebee;
-}
-
-.paragraph.tagged-question {
-    background-color: #e3f2fd;
-}
-
-.paragraph.tagged-definition {
-    background-color: #e8f5e9;
-}
-
-/* Styles for selection-based tagging */
-.tagged-selection {
-    position: relative;
-    cursor: pointer; /* Indicate clickable tagged text */
-}
-
-.selection-tag-icon {
-    display: inline-flex;
-    width: 20px;
-    height: 20px;
-    border-radius: 50%;
-    background-color: #eee;
-    color: #333;
-    font-size: 12px;
-    justify-content: center;
-    align-items: center;
-    margin-bottom: 4px;
-    position: absolute;
-    right: 10px;
-    position: relative;
-}
-
-.tag-management-menu {
-    position: absolute;
-    /* right: 100%; Position to the left of the icon */
-    top: 0;
-    background-color: white;
-    border: 1px solid #ccc;
-    border-radius: 4px;
-    padding: 5px;
-    display: none; /* Hidden by default, toggled by JS */
-    z-index: 10; /* Ensure it's above other elements */
-    flex-direction: column;
-}
-
-.tag-management-menu button {
-    background: none;
-    border: none;
-    padding: 5px;
-    margin: 0 2px;
-    cursor: pointer;
-    border-radius: 3px;
-}
-
-.tag-management-menu button:hover {
-    background-color: #f0f0f0;
-}
-
-.tag-management-menu button[title^="Change tag to important"] { color: #d32f2f; }
-.tag-management-menu button[title^="Change tag to question"]  { color: #1976d2; }
-.tag-management-menu button[title^="Change tag to definition"] { color: #388e3c; }
-.tag-management-menu button[title="Delete tag"] { color: #777; }
 
 pre {
     background-color: #f6f8fa;
@@ -179,18 +58,4 @@ pre {
 
 code {
     font-family: Consolas, Monaco, 'Andale Mono', monospace;
-}
-
-/* Example tag icon colors (customize as needed) */
-.selection-tag-icon-important {
-    background-color: #ffebee;
-    color: #d32f2f;
-}
-.selection-tag-icon-question {
-    background-color: #e3f2fd;
-    color: #1976d2;
-}
-.selection-tag-icon-definition {
-    background-color: #e8f5e9;
-    color: #388e3c;
 }
