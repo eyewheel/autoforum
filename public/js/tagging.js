@@ -8,17 +8,26 @@ document.addEventListener('DOMContentLoaded', function() {
 
     let selectionTags = {}; // In-memory storage
     let tagCounter = 0;
-    const localStorageKey = 'markdownTagging_selectionTags'; // Define localStorage key
+    const localStorageKey = 'markdownTagging_selectionTags';
 
     // Load tags from LocalStorage on page load
     const storedTags = localStorage.getItem(localStorageKey);
     if (storedTags) {
         selectionTags = JSON.parse(storedTags);
-        // Re-render tags on load
         Object.keys(selectionTags).forEach(paragraphId => {
             renderTagsForParagraph(paragraphId);
         });
     }
+
+    // Initialize tag sidebar with add tag button
+    const tagSidebar = document.getElementById('tag-sidebar');
+    const addTagButton = document.createElement('button');
+    addTagButton.className = 'selection-tag-icon';
+    addTagButton.innerHTML = '+';
+    addTagButton.title = 'Add Tag';
+    addTagButton.id = 'add-tag-button';
+    addTagButton.style.display = 'none';
+    tagSidebar.appendChild(addTagButton);
 
     function getCurrentSelection() {
         const selection = window.getSelection();
@@ -27,37 +36,64 @@ document.addEventListener('DOMContentLoaded', function() {
         }
 
         const range = selection.getRangeAt(0);
-        const paragraph = range.startContainer.parentElement.closest('.paragraph');
-        if (!paragraph) {
+        const startParagraph = range.startContainer.parentElement.closest('.paragraph');
+        const endParagraph = range.endContainer.parentElement.closest('.paragraph');
+        
+        if (!startParagraph || !endParagraph) {
             return null;
         }
 
-        const selectedText = selection.toString().trim(); // Trimmed selected text
-        if (!selectedText) { // Check for empty selection after trimming
+        const selectedText = selection.toString().trim();
+        if (!selectedText) {
             return null;
         }
-
-        const paragraphText = paragraph.textContent;
-        const startIndex = paragraphText.indexOf(selectedText, paragraphText.indexOf(range.startContainer.textContent.trimStart()));
-        const endIndex = startIndex + selectedText.length;
 
         return {
             selection: selection,
             range: range,
-            paragraph: paragraph,
+            startParagraph: startParagraph,
+            endParagraph: endParagraph,
             selectedText: selectedText,
-            startIndex: startIndex,
-            endIndex: endIndex
+            startOffset: range.startOffset,
+            endOffset: range.endOffset
         };
     }
 
-    function renderTagsForParagraph(paragraphId) {
-        console.log('renderTagsForParagraph CALLED for paragraphId:', paragraphId);
+    function getSelectionVerticalCenter() {
+        const selection = window.getSelection();
+        if (!selection || selection.isCollapsed) return null;
 
-        const paragraph = document.getElementById(paragraphId);
-        if (!paragraph) {
-            return;
+        const range = selection.getRangeAt(0);
+        const rects = range.getClientRects();
+        if (rects.length === 0) return null;
+
+        const firstRect = rects[0];
+        const lastRect = rects[rects.length - 1];
+        return (firstRect.top + lastRect.bottom) / 2;
+    }
+
+    function findAvailableVerticalSpace(verticalCenter) {
+        const tagIcons = Array.from(document.querySelectorAll('.selection-tag-icon:not(#add-tag-button)'));
+        const iconPositions = tagIcons.map(icon => parseFloat(icon.style.top));
+        
+        // If no icons exist, return the vertical center
+        if (iconPositions.length === 0) {
+            return verticalCenter;
         }
+
+        // Find the first position that has enough space (10px margin)
+        let position = verticalCenter;
+        while (iconPositions.some(pos => Math.abs(pos - position) < 42)) { // 32px height + 10px margin
+            position += 42;
+        }
+
+        return position;
+    }
+
+    function renderTagsForParagraph(paragraphId) {
+        const paragraph = document.getElementById(paragraphId);
+        if (!paragraph) return;
+
         const originalText = paragraph.textContent;
         paragraph.innerHTML = '';
 
@@ -95,13 +131,12 @@ document.addEventListener('DOMContentLoaded', function() {
                 tagIconSpan.dataset.tagId = tag.id;
                 tagIconSpan.dataset.paragraphId = paragraphId;
 
-                // Tag management menu (initially hidden)
+                // Tag management menu
                 const tagMenu = document.createElement('div');
                 tagMenu.className = 'tag-management-menu';
-                tagMenu.dataset.tagId = tag.id; // Associate menu with tag
-                tagMenu.style.display = 'none'; // Initially hidden
+                tagMenu.dataset.tagId = tag.id;
+                tagMenu.style.display = 'none';
 
-                // Tag type buttons in menu
                 Object.entries(tagIcons).forEach(([type, icon]) => {
                     const typeButton = document.createElement('button');
                     typeButton.textContent = icon;
@@ -110,21 +145,18 @@ document.addEventListener('DOMContentLoaded', function() {
                     tagMenu.appendChild(typeButton);
                 });
 
-                // Delete button in menu
                 const deleteButton = document.createElement('button');
                 deleteButton.textContent = 'X';
                 deleteButton.title = 'Delete tag';
                 deleteButton.addEventListener('click', () => deleteTag(tag.id, paragraphId));
                 tagMenu.appendChild(deleteButton);
 
-
-                tagIconSpan.appendChild(tagMenu); // Add menu to icon
-                tagIconSpan.addEventListener('click', (event) => toggleTagMenu(event, tag.id)); // Toggle menu on icon click
-
+                tagIconSpan.appendChild(tagMenu);
+                tagIconSpan.addEventListener('click', (event) => toggleTagMenu(event, tag.id));
 
                 tagSidebar.appendChild(tagIconSpan);
 
-                // Vertical positioning (same as before)
+                // Position tag icon vertically
                 setTimeout(() => {
                     const selectionRange = document.createRange();
                     selectionRange.selectNodeContents(taggedSpan);
@@ -133,16 +165,11 @@ document.addEventListener('DOMContentLoaded', function() {
                         const firstRect = rects[0];
                         const lastRect = rects[rects.length - 1];
                         const verticalCenter = (firstRect.top + lastRect.bottom) / 2;
-
                         const sidebarRect = tagSidebar.getBoundingClientRect();
-                        const contentRect = document.getElementById('content').getBoundingClientRect();
-
-                        const sidebarTop = verticalCenter - sidebarRect.top - contentRect.left;
-
-                        tagIconSpan.style.top = `${sidebarTop}px`;
+                        const position = findAvailableVerticalSpace(verticalCenter - sidebarRect.top);
+                        tagIconSpan.style.top = `${position}px`;
                     }
                 }, 0);
-
 
                 currentIndex = tag.endOffset;
             });
@@ -152,14 +179,8 @@ document.addEventListener('DOMContentLoaded', function() {
             paragraph.appendChild(document.createTextNode(originalText.substring(currentIndex)));
         }
 
-        if (!selectionTags[paragraphId] || selectionTags[paragraphId].length === 0) {
-            paragraph.textContent = originalText;
-        }
-
-        // Save to LocalStorage after rendering
         localStorage.setItem(localStorageKey, JSON.stringify(selectionTags));
     }
-
 
     function changeTagType(tagId, newTagType, paragraphId) {
         selectionTags[paragraphId] = selectionTags[paragraphId].map(tag => {
@@ -168,20 +189,18 @@ document.addEventListener('DOMContentLoaded', function() {
             }
             return tag;
         });
-        renderTagsForParagraph(paragraphId); // Re-render to update visual
+        renderTagsForParagraph(paragraphId);
     }
 
     function deleteTag(tagId, paragraphId) {
         selectionTags[paragraphId] = selectionTags[paragraphId].filter(tag => tag.id !== tagId);
-        renderTagsForParagraph(paragraphId); // Re-render to update visual
+        renderTagsForParagraph(paragraphId);
     }
 
     function toggleTagMenu(event, tagId) {
-        event.stopPropagation(); // Prevent document click from immediately closing
-
+        event.stopPropagation();
         const tagMenu = event.currentTarget.querySelector('.tag-management-menu');
         if (tagMenu) {
-            // Close any other open menus
             document.querySelectorAll('.tag-management-menu').forEach(menu => {
                 if (menu !== tagMenu) {
                     menu.style.display = 'none';
@@ -191,54 +210,28 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
-    // Close tag menus when clicking outside
-    document.addEventListener('click', () => {
-        document.querySelectorAll('.tag-management-menu').forEach(menu => {
-            menu.style.display = 'none';
-        });
-    });
+    // Show tag type buttons when add tag button is clicked
+    addTagButton.addEventListener('click', () => {
+        const selectionInfo = getCurrentSelection();
+        if (selectionInfo) {
+            const tagMenu = document.createElement('div');
+            tagMenu.className = 'tag-management-menu';
+            tagMenu.style.display = 'flex';
 
-
-    // Initialize tag icons for each paragraph
-    document.querySelectorAll('.tag-icons').forEach(iconContainer => {
-        const paragraphId = iconContainer.getAttribute('data-for');
-
-        // Create Trigger Icon
-        const triggerIcon = document.createElement('button');
-        triggerIcon.className = 'trigger-icon';
-        triggerIcon.innerHTML = '+'; // Or any other icon
-        triggerIcon.title = 'Add Tag';
-        triggerIcon.addEventListener('click', () => {
-            const selectionInfo = getCurrentSelection();
-            if (selectionInfo) {
-                // Trigger tag type selection UI here (next step)
-                console.log('Trigger icon clicked. Selected text:', selectionInfo.selectedText);
-                // For now, let's just log the selection info
-            } else {
-                console.log('No valid text selection.');
-            }
-        });
-        iconContainer.appendChild(triggerIcon);
-
-
-        Object.entries(tagIcons).forEach(([tagType, icon]) => {
-            const button = document.createElement('button');
-            button.className = 'tag-button';
-            button.setAttribute('data-tag', tagType);
-            button.innerHTML = icon;
-            button.style.display = 'none'; // Initially hide tag type buttons
-            button.addEventListener('click', () => {
-                const selectionInfo = getCurrentSelection();
-                if (selectionInfo) {
-                    const { paragraph, selectedText, startIndex, endIndex } = selectionInfo;
-                    const paragraphId = paragraph.id;
+            Object.entries(tagIcons).forEach(([type, icon]) => {
+                const button = document.createElement('button');
+                button.textContent = icon;
+                button.title = type;
+                button.addEventListener('click', () => {
+                    const { startParagraph, selectedText, startOffset, endOffset } = selectionInfo;
+                    const paragraphId = startParagraph.id;
                     const tagId = `tag-${tagCounter++}`;
 
                     const newTag = {
                         id: tagId,
-                        startOffset: startIndex,
-                        endOffset: endIndex,
-                        tagType: tagType,
+                        startOffset: startOffset,
+                        endOffset: endOffset,
+                        tagType: type,
                         text: selectedText
                     };
 
@@ -246,49 +239,50 @@ document.addEventListener('DOMContentLoaded', function() {
                         selectionTags[paragraphId] = [];
                     }
                     selectionTags[paragraphId].push(newTag);
-
                     renderTagsForParagraph(paragraphId);
-
-                    button.classList.toggle('active');
-                } else {
-                    console.log('No text selected within a paragraph.');
-                }
+                    tagMenu.remove();
+                    addTagButton.style.display = 'none';
+                });
+                tagMenu.appendChild(button);
             });
 
-            iconContainer.appendChild(button);
-        });
-    });
-
-    let currentSelection = null; // Store current selection info
-
-    document.addEventListener('mouseup', function(event) {
-        console.log('mouseup event');
-        currentSelection = getCurrentSelection();
-        document.querySelectorAll('.tag-icons').forEach(iconContainer => {
-            console.log('iconContainer', iconContainer);
-            if (currentSelection && currentSelection.paragraph.parentElement.parentElement === iconContainer.parentElement) { // Check if selection is in the paragraph associated with this iconContainer
-                iconContainer.classList.add('selection-active'); // Show trigger icon
-                // Hide tag type buttons for now, will be shown in next step
-                iconContainer.querySelectorAll('.tag-button').forEach(button => button.style.display = 'none');
-            } else {
-                iconContainer.classList.remove('selection-active'); // Hide trigger icon
-                // Hide tag type buttons
-                iconContainer.querySelectorAll('.tag-button').forEach(button => button.style.display = 'none');
-            }
-        });
-    });
-
-    document.addEventListener('mousedown', function(event) {
-        // Clear selection when clicking outside of a paragraph (or maybe always on mousedown to simplify)
-        if (!event.target.closest('.paragraph-container')) {
-            window.getSelection().removeAllRanges();
-            currentSelection = null;
-            document.querySelectorAll('.tag-icons').forEach(iconContainer => {
-                iconContainer.classList.remove('selection-active'); // Hide trigger icon
-                // Hide tag type buttons
-                iconContainer.querySelectorAll('.tag-button').forEach(button => button.style.display = 'none');
-            });
+            addTagButton.appendChild(tagMenu);
         }
     });
 
+    // Handle text selection
+    function updateAddTagButtonPosition() {
+        const selection = window.getSelection();
+        if (!selection.isCollapsed && selection.toString().trim()) {
+            const verticalCenter = getSelectionVerticalCenter();
+            if (verticalCenter !== null) {
+                const sidebarRect = tagSidebar.getBoundingClientRect();
+                const position = findAvailableVerticalSpace(verticalCenter - sidebarRect.top) - 10; // Adjust 10px up
+                addTagButton.style.top = `${position}px`;
+                addTagButton.style.display = 'flex';
+                return;
+            }
+        }
+        addTagButton.style.display = 'none';
+    }
+
+    // Only handle mouse up events for selection
+    document.addEventListener('mouseup', function(event) {
+        setTimeout(updateAddTagButtonPosition, 0);
+    });
+
+    // Close tag menus when clicking outside
+    document.addEventListener('click', () => {
+        document.querySelectorAll('.tag-management-menu').forEach(menu => {
+            menu.style.display = 'none';
+        });
+    });
+
+    // Clear selection when clicking outside paragraphs
+    document.addEventListener('mousedown', function(event) {
+        if (!event.target.closest('.paragraph') && !event.target.closest('#tag-sidebar')) {
+            window.getSelection().removeAllRanges();
+            addTagButton.style.display = 'none';
+        }
+    });
 });

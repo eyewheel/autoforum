@@ -1,17 +1,6 @@
 /* public/styles/tags.css */
 
-.tag-icons {
-    display: flex;
-    flex-direction: row;
-    gap: 8px;
-    transition: opacity 0.2s;
-    justify-content: flex-end; /* Align icons to the right */
-    align-items: center; /* Vertically center icons */
-    padding-left: 10px; /* Space from paragraph */
-    flex-shrink: 0; /* Prevent icons from shrinking */
-}
-
-.tag-button, .trigger-icon { /* Apply shared styles to both button types */
+.selection-tag-icon {
     width: 32px;
     height: 32px;
     border: none;
@@ -66,31 +55,46 @@
 }
 
 .selection-tag-icon {
-    display: inline-flex;
-    width: 20px;
-    height: 20px;
+    display: flex;
+    width: 32px;
+    height: 32px;
     border-radius: 50%;
-    background-color: #eee;
+    background-color: white;
     color: #333;
-    font-size: 12px;
+    font-size: 16px;
     justify-content: center;
     align-items: center;
-    margin-bottom: 4px;
+    margin-top: 10px;
+    margin-left: 10px;
     position: absolute;
-    right: 10px;
-    position: relative;
+    left: 0;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    cursor: pointer;
+    transition: transform 0.1s, background-color 0.2s;
+    z-index: 100;
+}
+
+.selection-tag-icon:first-child {
+    margin-top: 0;
+}
+
+.selection-tag-icon:hover {
+    transform: scale(1.1);
 }
 
 .tag-management-menu {
     position: absolute;
     top: 0;
+    left: -120px;  /* Position menu to the left of the tag icon */
     background-color: white;
     border: 1px solid #ccc;
-    border-radius: 4px;
-    padding: 5px;
+    border-radius: 8px;
+    padding: 8px;
     display: none;
     z-index: 10;
     flex-direction: column;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    min-width: 100px;
 }
 
 .tag-management-menu button {

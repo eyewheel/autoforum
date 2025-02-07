@@ -22,7 +22,7 @@ body {
     width: 200px;
     padding: 20px;
     box-sizing: border-box;
-    overflow-y: auto;
+    overflow: hidden;
     position: absolute;
     top: 20px;
     right: 20px;
@@ -34,13 +34,6 @@ body {
 .paragraph-container {
     margin: 1em 0;
     position: relative;
-    display: flex; /* Use flexbox for paragraph and icons */
-    flex-direction: row;
-    align-items: flex-start; /* Align items to the start, important for layout */
-}
-
-.paragraph-text-wrapper {
-    flex-grow: 1; /* Paragraph text takes available space */
 }
 
 .paragraph {
