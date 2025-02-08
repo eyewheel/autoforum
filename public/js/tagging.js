@@ -72,22 +72,139 @@ document.addEventListener('DOMContentLoaded', function() {
         return (firstRect.top + lastRect.bottom) / 2;
     }
 
-    function findAvailableVerticalSpace(verticalCenter) {
-        const tagIcons = Array.from(document.querySelectorAll('.selection-tag-icon:not(#add-tag-button)'));
-        const iconPositions = tagIcons.map(icon => parseFloat(icon.style.top));
+    function findAvailableVerticalSpace(verticalCenter, excludeIcon = null) {
+        const tagIcons = Array.from(document.querySelectorAll('.selection-tag-icon:not(#add-tag-button)'))
+            .filter(icon => icon !== excludeIcon);
         
+        // Sort icons by vertical position
+        const iconPositions = tagIcons
+            .map(icon => ({
+                icon,
+                top: parseFloat(icon.style.top) || 0
+            }))
+            .sort((a, b) => a.top - b.top);
+
         // If no icons exist, return the vertical center
         if (iconPositions.length === 0) {
             return verticalCenter;
         }
 
-        // Find the first position that has enough space (10px margin)
+        // Find gaps between icons that can fit our new icon
         let position = verticalCenter;
-        while (iconPositions.some(pos => Math.abs(pos - position) < 42)) { // 32px height + 10px margin
-            position += 42;
+        const iconHeight = 32;
+        const margin = 10;
+        const minSpace = iconHeight + margin;
+
+        // Find the closest available position to the verticalCenter
+        let bestPosition = position;
+        let minDistance = Infinity;
+
+        // Check each gap between icons
+        for (let i = 0; i < iconPositions.length; i++) {
+            const currentTop = iconPositions[i].top;
+            const nextTop = i < iconPositions.length - 1 ? iconPositions[i + 1].top : Infinity;
+            const gap = nextTop - (currentTop + iconHeight);
+
+            if (gap >= margin) {
+                // We can fit here
+                const availablePosition = currentTop + iconHeight + margin;
+                const distance = Math.abs(availablePosition - verticalCenter);
+                
+                if (distance < minDistance) {
+                    minDistance = distance;
+                    bestPosition = availablePosition;
+                }
+            }
         }
 
-        return position;
+        // Also check position above first icon
+        const firstIconTop = iconPositions[0].top;
+        if (firstIconTop >= minSpace) {
+            const availablePosition = firstIconTop - minSpace;
+            const distance = Math.abs(availablePosition - verticalCenter);
+            
+            if (distance < minDistance) {
+                minDistance = distance;
+                bestPosition = availablePosition;
+            }
+        }
+
+        return bestPosition;
+    }
+
+    function positionMenu(menu, triggerRect) {
+        const viewportHeight = window.innerHeight;
+        const menuHeight = menu.offsetHeight;
+        
+        // Start with centered position
+        let top = triggerRect.top + (triggerRect.height / 2) - (menuHeight / 2);
+        
+        // Adjust if too close to bottom
+        if (top + menuHeight > viewportHeight - 10) {
+            top = viewportHeight - menuHeight - 10;
+        }
+        
+        // Adjust if too close to top
+        if (top < 10) {
+            top = 10;
+        }
+        
+        menu.style.top = `${top}px`;
+    }
+
+    function handleTagOverlap(addTagPosition) {
+        const addTagIcon = document.getElementById('add-tag-button');
+        if (!addTagIcon) return;
+
+        const tagIcons = Array.from(document.querySelectorAll('.selection-tag-icon:not(#add-tag-button)'))
+            .map(icon => ({
+                element: icon,
+                top: parseFloat(icon.style.top) || 0
+            }))
+            .sort((a, b) => a.top - b.top);
+
+        const iconHeight = 32;
+        const overlapThreshold = iconHeight;
+        const moveOffset = 15; // Fixed 15px movement
+
+        // Find overlapping tags
+        const overlappingTags = tagIcons.filter(icon =>
+            Math.abs(icon.top - addTagPosition) < overlapThreshold
+        );
+
+        // Reset all tags first
+        tagIcons.forEach(({element}) => {
+            element.style.opacity = '1';
+            element.style.transform = 'none';
+            element.style.transition = 'transform 0.3s ease-out, opacity 0.3s ease-out';
+        });
+
+        // Apply effects to overlapping tags
+        if (overlappingTags.length > 0) {
+            const center = addTagPosition;
+            overlappingTags.forEach(({element, top}) => {
+                element.style.opacity = '0.5';
+                const direction = top > center ? 1 : -1;
+                element.style.transform = `translateY(${moveOffset * direction}px)`;
+            });
+        }
+    }
+
+    // Store the add tag button position for new tags
+    let lastAddTagPosition = null;
+
+    // Update menu toggle function to handle positioning
+    function toggleTagMenu() {
+        const menu = tagMenu;
+        const addTagButton = document.getElementById('add-tag-button');
+        
+        if (menu.style.display === 'none' || !menu.style.display) {
+            menu.style.display = 'flex';
+            const buttonRect = addTagButton.getBoundingClientRect();
+            positionMenu(menu, buttonRect);
+        } else {
+            menu.style.display = 'none';
+        }
     }
 
     function renderTagsForParagraph(paragraphId) {
@@ -166,7 +283,9 @@ document.addEventListener('DOMContentLoaded', function() {
                         const lastRect = rects[rects.length - 1];
                         const verticalCenter = (firstRect.top + lastRect.bottom) / 2;
                         const sidebarRect = tagSidebar.getBoundingClientRect();
-                        const position = findAvailableVerticalSpace(verticalCenter - sidebarRect.top);
+                        const position = lastAddTagPosition || findAvailableVerticalSpace(verticalCenter - sidebarRect.top);
+                        // Clear lastAddTagPosition after using it
+                        lastAddTagPosition = null;
                         tagIconSpan.style.top = `${position}px`;
                     }
                 }, 0);
@@ -210,43 +329,85 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
-    // Show tag type buttons when add tag button is clicked
-    addTagButton.addEventListener('click', () => {
-        const selectionInfo = getCurrentSelection();
-        if (selectionInfo) {
-            const tagMenu = document.createElement('div');
-            tagMenu.className = 'tag-management-menu';
-            tagMenu.style.display = 'flex';
+    // Create and add menu to document body
+    const tagMenu = document.createElement('div');
+    tagMenu.className = 'tag-management-menu';
+    document.body.appendChild(tagMenu);
+    
+    Object.entries(tagIcons).forEach(([type, icon]) => {
+        const button = document.createElement('button');
+        button.textContent = icon;
+        button.title = `Add ${type} tag`;
+        button.addEventListener('click', () => {
+            const selectionInfo = getCurrentSelection();
+            if (selectionInfo) {
+                const { startParagraph, selectedText, startOffset, endOffset } = selectionInfo;
+                const paragraphId = startParagraph.id;
+                const tagId = `tag-${tagCounter++}`;
 
-            Object.entries(tagIcons).forEach(([type, icon]) => {
-                const button = document.createElement('button');
-                button.textContent = icon;
-                button.title = type;
-                button.addEventListener('click', () => {
-                    const { startParagraph, selectedText, startOffset, endOffset } = selectionInfo;
-                    const paragraphId = startParagraph.id;
-                    const tagId = `tag-${tagCounter++}`;
+                const newTag = {
+                    id: tagId,
+                    startOffset: startOffset,
+                    endOffset: endOffset,
+                    tagType: type,
+                    text: selectedText
+                };
 
-                    const newTag = {
-                        id: tagId,
-                        startOffset: startOffset,
-                        endOffset: endOffset,
-                        tagType: type,
-                        text: selectedText
-                    };
+                if (!selectionTags[paragraphId]) {
+                    selectionTags[paragraphId] = [];
+                }
+                selectionTags[paragraphId].push(newTag);
+                renderTagsForParagraph(paragraphId);
+                toggleTagMenu();
+                addTagButton.style.display = 'none';
+            }
+        });
+        tagMenu.appendChild(button);
+    });
 
-                    if (!selectionTags[paragraphId]) {
-                        selectionTags[paragraphId] = [];
-                    }
-                    selectionTags[paragraphId].push(newTag);
-                    renderTagsForParagraph(paragraphId);
-                    tagMenu.remove();
-                    addTagButton.style.display = 'none';
-                });
-                tagMenu.appendChild(button);
-            });
+    // Handle add tag button clicks
+    function toggleTagMenu() {
+        if (tagMenu.style.display === 'flex') {
+            tagMenu.style.display = 'none';
+            return;
+        }
 
-            addTagButton.appendChild(tagMenu);
+        const addTagButton = document.getElementById('add-tag-button');
+        const buttonRect = addTagButton.getBoundingClientRect();
+
+        // First display the menu to get its dimensions
+        tagMenu.style.display = 'flex';
+        tagMenu.style.visibility = 'hidden';  // Hide while positioning
+        
+        const menuRect = tagMenu.getBoundingClientRect();
+        const viewportWidth = window.innerWidth;
+        const viewportHeight = window.innerHeight;
+        
+        // Start with position to the right of the button
+        let left = buttonRect.right + 10;
+        let top = buttonRect.top + (buttonRect.height / 2) - (menuRect.height / 2);
+
+        // Check if menu would go outside viewport to the right
+        if (left + menuRect.width > viewportWidth - 10) {
+            // Position to the left of the button instead
+            left = buttonRect.left - menuRect.width - 10;
+        }
+
+        // Ensure menu stays within viewport vertically
+        const minTop = 10;
+        const maxTop = viewportHeight - menuRect.height - 10;
+        top = Math.max(minTop, Math.min(top, maxTop));
+
+        // Apply the final position
+        tagMenu.style.left = `${left}px`;
+        tagMenu.style.top = `${top}px`;
+        tagMenu.style.visibility = 'visible';  // Show menu after positioning
+    }
+
+    addTagButton.addEventListener('click', (event) => {
+        event.stopPropagation();
+        if (getCurrentSelection()) {
+            toggleTagMenu();
         }
     });
 
@@ -257,32 +418,64 @@ document.addEventListener('DOMContentLoaded', function() {
             const verticalCenter = getSelectionVerticalCenter();
             if (verticalCenter !== null) {
                 const sidebarRect = tagSidebar.getBoundingClientRect();
-                const position = findAvailableVerticalSpace(verticalCenter - sidebarRect.top) - 10; // Adjust 10px up
-                addTagButton.style.top = `${position}px`;
+                // Store position for new tag creation
+                lastAddTagPosition = verticalCenter - sidebarRect.top - 15; // 15px up for better positioning
+                addTagButton.style.top = `${lastAddTagPosition}px`;
                 addTagButton.style.display = 'flex';
+                
+                // Apply overlap effects to nearby tags
+                handleTagOverlap(lastAddTagPosition);
                 return;
             }
         }
+        // Reset tag positions and clear stored position
         addTagButton.style.display = 'none';
+        lastAddTagPosition = null;
+        document.querySelectorAll('.selection-tag-icon:not(#add-tag-button)').forEach(icon => {
+            icon.style.opacity = '1';
+            icon.style.transform = 'none';
+        });
     }
 
-    // Only handle mouse up events for selection
+    // Handle mouse up events for selection
     document.addEventListener('mouseup', function(event) {
-        setTimeout(updateAddTagButtonPosition, 0);
+        // Wait longer for triple-click to settle
+        setTimeout(() => {
+            const selection = window.getSelection();
+            if (selection && !selection.isCollapsed && selection.toString().trim()) {
+                updateAddTagButtonPosition();
+            } else {
+                addTagButton.style.display = 'none';
+                // Reset any affected tags
+                document.querySelectorAll('.selection-tag-icon:not(#add-tag-button)').forEach(icon => {
+                    icon.style.opacity = '1';
+                    icon.style.transform = 'none';
+                });
+            }
+        }, 50); // Increased timeout for better triple-click handling
     });
 
-    // Close tag menus when clicking outside
-    document.addEventListener('click', () => {
-        document.querySelectorAll('.tag-management-menu').forEach(menu => {
-            menu.style.display = 'none';
-        });
+    // Close tag menu when clicking outside
+    document.addEventListener('click', (event) => {
+        // Only close if click is outside the tag menu and add tag button
+        if (!event.target.closest('.tag-management-menu') &&
+            !event.target.closest('#add-tag-button')) {
+            tagMenu.style.display = 'none';
+        }
     });
 
-    // Clear selection when clicking outside paragraphs
+    // Clear selection when clicking outside paragraphs and tag menu
     document.addEventListener('mousedown', function(event) {
-        if (!event.target.closest('.paragraph') && !event.target.closest('#tag-sidebar')) {
+        if (!event.target.closest('.paragraph') &&
+            !event.target.closest('#tag-sidebar')) {
             window.getSelection().removeAllRanges();
             addTagButton.style.display = 'none';
+            tagMenu.style.display = 'none';
         }
+    });
+
+    // Prevent menu clicks from bubbling up
+    tagMenu.addEventListener('click', (event) => {
+        event.stopPropagation();
     });
 });
