@@ -1,5 +1,3 @@
-/* public/styles/tags.css */
-
 /* Base styles for all tag icons */
 .selection-tag-icon {
     display: flex;
@@ -15,7 +13,7 @@
     position: absolute;
     box-shadow: 0 2px 3px rgba(0,0,0,0.3);
     cursor: pointer;
-    transition: transform 0.25s ease-out;
+    transition: all 0.25s ease-out;
     z-index: 100;
 }
 
@@ -30,7 +28,7 @@
     outline: none;
 }
 
-/* Hover effect ONLY for the icons */
+/* Hover effect for icons */
 .selection-tag-icon {
     transform-origin: center;
 }
@@ -41,50 +39,84 @@
 
 /* Tag menu styles */
 .tag-management-menu {
-    position: fixed; /* Use fixed to escape parent boundaries */
+    position: fixed;
     background-color: white;
     border: 1px solid #ccc;
-    border-radius: 12px; /* Increased from 8px */
-    padding: 12px; /* Increased from 8px */
+    border-radius: 12px;
+    padding: 12px;
     display: none;
-    z-index: 9999; /* Ensure menu is above everything */
+    z-index: 9999;
     flex-direction: column;
-    gap: 8px; /* Increased from 4px */
-    box-shadow: 0 4px 12px rgba(0,0,0,0.25); /* Enhanced shadow */
-    min-width: 160px; /* Increased from 120px */
-    transform: none !important; /* Prevent menu scaling */
+    gap: 8px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.25);
+    min-width: 200px; /* Increased for better text display */
+    transform: none !important;
 }
 
-/* Menu buttons */
+/* Tag type button container */
+.tag-buttons-container {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+/* Menu buttons with enhanced info display */
 .tag-management-menu button {
-    padding: 10px 16px; /* Increased from 6px 12px */
+    padding: 10px 16px;
     width: 100%;
     text-align: left;
     border: none;
     background: none;
     cursor: pointer;
-    border-radius: 6px; /* Increased from 4px */
+    border-radius: 6px;
     transition: background-color 0.2s;
     display: flex;
-    /* justify-content: center; */
-    font-size: 18px; /* Added explicit font size */
+    align-items: center;
+    gap: 8px;
+    font-size: 14px;
+    position: relative;
+}
+
+/* Tag icon in button */
+.tag-management-menu button::before {
+    content: attr(data-icon);
+    font-size: 18px;
+    width: 24px;
+    text-align: center;
+}
+
+/* Tag description tooltip */
+.tag-management-menu button:hover::after {
+    content: attr(data-description);
+    position: absolute;
+    left: 100%;
+    top: 50%;
+    transform: translateY(-50%);
+    background: rgba(0, 0, 0, 0.8);
+    color: white;
+    padding: 6px 12px;
+    border-radius: 4px;
+    font-size: 12px;
+    white-space: nowrap;
+    margin-left: 8px;
+    z-index: 1000;
 }
 
 .tag-management-menu button:hover {
     background-color: #f8f9fa;
 }
 
-/* Tag input container styles */
+/* Enhanced tag input container */
 .tag-input-container {
     display: none;
-    flex-direction: row;
+    flex-direction: column;
     gap: 8px;
-    margin-top: 4px;
+    margin-top: 8px;
     padding-top: 8px;
     border-top: 1px solid #eee;
 }
 
-/* Tag input field styles */
+/* Tag input field with better focus states */
 .tag-input {
     flex: 1;
     padding: 8px 12px;
@@ -92,7 +124,7 @@
     border-radius: 6px;
     font-size: 14px;
     outline: none;
-    transition: border-color 0.2s;
+    transition: all 0.2s;
 }
 
 .tag-input:focus {
@@ -100,14 +132,27 @@
     box-shadow: 0 0 0 2px rgba(13, 110, 253, 0.3);
 }
 
-/* Tag submit button styles */
+/* Custom text indicator */
+.has-custom-text::after {
+    content: '✍';
+    position: absolute;
+    bottom: -4px;
+    right: -4px;
+    font-size: 12px;
+    background: white;
+    border-radius: 50%;
+    padding: 2px;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.2);
+}
+
+/* Tag submit button */
 .tag-submit {
     padding: 8px 12px !important;
     background-color: #0d6efd !important;
     color: white !important;
     border-radius: 6px !important;
     cursor: pointer;
-    transition: background-color 0.2s, transform 0.2s;
+    transition: all 0.2s;
     box-shadow: 0 2px 4px rgba(13, 110, 253, 0.2);
 }
 
@@ -116,7 +161,7 @@
     transform: translateY(-1px);
 }
 
-/* Tag colors */
+/* Tag type specific colors - kept for backward compatibility */
 .tag-management-menu button[title^="Change tag to important"],
 .selection-tag-icon-important {
     color: #d32f2f;
@@ -132,6 +177,19 @@
     color: #388e3c;
 }
 
+/* New tag type colors */
+.selection-tag-icon-needs-clarification {
+    color: #f57c00;
+}
+
+.selection-tag-icon-example {
+    color: #7b1fa2;
+}
+
+.selection-tag-icon-suggestion {
+    color: #0288d1;
+}
+
 .tag-management-menu button[title="Delete tag"] {
     color: #777;
 }
@@ -143,6 +201,7 @@
     transition: background-color 0.2s ease-out;
 }
 
+/* Legacy highlight colors - kept for backward compatibility */
 .tagged-important-highlighted {
     background-color: rgba(211, 47, 47, 0.15);
 }
@@ -155,10 +214,17 @@
     background-color: rgba(56, 142, 60, 0.15);
 }
 
-/* Tagged selection styles */
-.tagged-selection {
-    position: relative;
-    cursor: pointer;
+/* New tag highlight colors */
+.tagged-needs-clarification-highlighted {
+    background-color: rgba(245, 124, 0, 0.15);
+}
+
+.tagged-example-highlighted {
+    background-color: rgba(123, 31, 162, 0.15);
+}
+
+.tagged-suggestion-highlighted {
+    background-color: rgba(2, 136, 209, 0.15);
 }
 
 /* Menu transform overrides */
@@ -168,4 +234,15 @@
 .tag-management-menu *:hover {
     transform: none !important;
     transition: none !important;
+}
+
+/* Custom text display in menu */
+.tag-custom-text {
+    font-size: 12px;
+    color: #666;
+    margin-top: 4px;
+    padding: 4px 8px;
+    background: #f8f9fa;
+    border-radius: 4px;
+    word-break: break-all;
 }

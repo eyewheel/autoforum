@@ -73,25 +73,25 @@ app.get('/api/content/:filename', async (req, res) => {
         markdownContent = markdownContent.trim();
 
         // Debug request parameters
-        console.log('Request query:', req.query);
-        console.log('Current markdown content:', markdownContent);
+        // console.log('Request query:', req.query);
+        // console.log('Current markdown content:', markdownContent);
 
         // Handle personalization or contributions
         if (req.query.personalization === '1' && req.query.customContent) {
-            console.log('Using personalized content');
+            // console.log('Using personalized content');
             markdownContent = decodeURIComponent(req.query.customContent);
-            console.log('Raw personalized content:', markdownContent);
+            // console.log('Raw personalized content:', markdownContent);
             // Ensure proper line breaks for markdown
             markdownContent = markdownContent.replace(/\r\n/g, '\n').trim();
         } else if (req.query.contributions === '1' && req.query.customContent) {
-            console.log('Using contributed content');
+            // console.log('Using contributed content');
             markdownContent = decodeURIComponent(req.query.customContent);
-            console.log('Raw contributed content:', markdownContent);
+            // console.log('Raw contributed content:', markdownContent);
             // Ensure proper line breaks for markdown
             markdownContent = markdownContent.replace(/\r\n/g, '\n').trim();
         }
         
-        console.log('Pre-parse markdown content:', markdownContent);
+        // console.log('Pre-parse markdown content:', markdownContent);
 
         // If the file uses the old format, extract the default section
         if (markdownContent.includes('<!-- DEFAULT START -->')) {
@@ -101,9 +101,9 @@ app.get('/api/content/:filename', async (req, res) => {
             }
         }
 
-        console.log('About to parse markdown content:', markdownContent);
+        // console.log('About to parse markdown content:', markdownContent);
         const htmlContent = await parser.parse(markdownContent);
-        console.log('Generated HTML content:', htmlContent);
+        // console.log('Generated HTML content:', htmlContent);
 
         // Format the HTML content for better readability in the response
         const formattedHtml = htmlContent

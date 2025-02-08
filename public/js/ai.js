@@ -35,11 +35,11 @@ Important: Provide the personalized content in markdown format. Use regular mark
 
         if (response.ok && data.response) {
             // Log the raw AI response
-            console.log('Raw AI response:', data.response);
+            // console.log('Raw AI response:', data.response);
             
             // Clean and format the markdown
             const formattedResponse = cleanAndFormatMarkdown(data.response);
-            console.log('Formatted markdown response:', formattedResponse);
+            // console.log('Formatted markdown response:', formattedResponse);
             
             return formattedResponse;
         } else {
@@ -104,11 +104,11 @@ Return the complete content with your improvements, making sure to:
 
         if (response.ok && data.response) {
             // Log the raw AI response
-            console.log('Raw AI contribution response:', data.response);
+            // console.log('Raw AI contribution response:', data.response);
             
             // Clean and format the markdown
             const formattedResponse = cleanAndFormatMarkdown(data.response);
-            console.log('Formatted markdown contribution:', formattedResponse);
+            // console.log('Formatted markdown contribution:', formattedResponse);
             
             return formattedResponse;
         } else {

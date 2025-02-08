@@ -1,4 +1,4 @@
-import { TAG_ICONS, CONSTANTS } from './constants.js';
+import { TAG_CONFIG } from './constants.js';
 
 export class TagRenderer {
     constructor(tagManager) {
@@ -25,7 +25,7 @@ export class TagRenderer {
 
     createTagMenu() {
         const menu = document.createElement('div');
-        menu.className = 'tag-management-menu add-tag-menu'; // Add specific class for add tag menu
+        menu.className = 'tag-management-menu add-tag-menu';
         menu.style.position = 'absolute';
         menu.style.display = 'none';
         document.body.appendChild(menu);
@@ -35,16 +35,19 @@ export class TagRenderer {
         buttonsContainer.className = 'tag-buttons-container';
         menu.appendChild(buttonsContainer);
         
-        // Add tag buttons
-        Object.entries(TAG_ICONS).forEach(([type, icon]) => {
+        // Add tag type buttons with enhanced info
+        Object.entries(TAG_CONFIG).forEach(([type, config]) => {
             const button = document.createElement('button');
-            button.textContent = type;
-            button.title = `Add ${type} tag`;
+            button.textContent = config.displayName;
+            button.title = config.description;
             button.dataset.tagType = type;
+            button.dataset.icon = config.icon;
+            button.dataset.description = config.description;
+            button.style.color = config.color;
             buttonsContainer.appendChild(button);
         });
 
-        // Add input container
+        // Add input container for custom text
         const inputContainer = document.createElement('div');
         inputContainer.className = 'tag-input-container';
         inputContainer.style.display = 'none';
@@ -53,7 +56,7 @@ export class TagRenderer {
         // Add input field
         const input = document.createElement('input');
         input.type = 'text';
-        input.placeholder = 'Enter tag text...';
+        input.placeholder = 'Enter custom text...';
         input.className = 'tag-input';
         inputContainer.appendChild(input);
 
@@ -64,21 +67,6 @@ export class TagRenderer {
         submitButton.title = 'Submit';
         inputContainer.appendChild(submitButton);
 
-        // Handle input events
-        input.addEventListener('keydown', (e) => {
-            if (e.key === 'Enter') {
-                console.log('Tag text submitted:', input.value);
-                input.value = '';
-                this.hideMenus();
-            }
-        });
-
-        submitButton.addEventListener('click', () => {
-            console.log('Tag text submitted:', input.value);
-            input.value = '';
-            this.hideMenus();
-        });
-        
         return menu;
     }
 
@@ -93,7 +81,6 @@ export class TagRenderer {
     renderParagraph(paragraphId) {
         // Check if we're in personalization mode
         if (window.contentVersion && window.contentVersion.hasPersonalization) {
-            // Hide the tag sidebar
             if (this.sidebarElement) {
                 this.sidebarElement.style.display = 'none';
             }
@@ -134,16 +121,21 @@ export class TagRenderer {
         const selectedText = originalText.substring(selection.startOffset, selection.endOffset);
         const afterText = originalText.substring(selection.endOffset);
 
-        paragraph.innerHTML = `${beforeText}<span class="tagged-selection tagged-${tag.tagType}-highlighted" data-tag-id="${tag.id}">${selectedText}</span>${afterText}`;
+        // Use TAG_CONFIG for styling
+        const config = TAG_CONFIG[tag.tagType];
+        const highlightClass = `tagged-${tag.tagType}-highlighted`;
+        const style = `background-color: ${config.backgroundColor};`;
+
+        paragraph.innerHTML = `${beforeText}<span class="tagged-selection ${highlightClass}" 
+            data-tag-id="${tag.id}" style="${style}">${selectedText}</span>${afterText}`;
     }
 
     renderTag(tag, paragraph) {
-        // Create sidebar icon
+        // Create sidebar icon with enhanced styling
         const iconElement = this.createTagIcon(tag);
         
         // Find the selection for this paragraph
         const selection = tag.selections.find(s => s.paragraphId === paragraph.id);
-        // console.log(selection);
         if (selection) {
             const position = this.calculateElementPosition(selection, iconElement);
             if (position !== null) {
@@ -155,18 +147,26 @@ export class TagRenderer {
     }
 
     createTagIcon(tag) {
+        const config = TAG_CONFIG[tag.tagType];
         const icon = document.createElement('span');
         icon.className = `selection-tag-icon selection-tag-icon-${tag.tagType}`;
-        icon.textContent = TAG_ICONS[tag.tagType];
-        icon.title = tag.tagType;
+        icon.textContent = config.icon;
+        icon.title = config.displayName;
         icon.dataset.tagId = tag.id;
+        icon.style.color = config.color;
         
-        // Set paragraphIds as a comma-separated list for multi-paragraph tags
+        // Add custom text indicator if present
+        if (tag.customText) {
+            icon.classList.add('has-custom-text');
+            icon.title += `: ${tag.customText}`;
+        }
+        
+        // Set paragraphIds for multi-paragraph tags
         icon.dataset.paragraphId = tag.selections.map(s => s.paragraphId).join(',');
 
         // Create management menu
         const menu = this.createTagManagementMenu(tag);
-        menu.dataset.tagIconId = tag.id;  // Add reference to the tag icon
+        menu.dataset.tagIconId = tag.id;
         document.body.appendChild(menu);
 
         // Add hover handlers
@@ -177,7 +177,7 @@ export class TagRenderer {
 
     createTagManagementMenu(tag) {
         const menu = document.createElement('div');
-        menu.className = 'tag-management-menu tag-icon-menu'; // Add specific class for icon menu
+        menu.className = 'tag-management-menu tag-icon-menu';
         menu.style.position = 'absolute';
         menu.style.display = 'none';
 
@@ -187,17 +187,27 @@ export class TagRenderer {
         menu.appendChild(buttonsContainer);
 
         // Add type change buttons
-        Object.entries(TAG_ICONS).forEach(([type, icon]) => {
+        Object.entries(TAG_CONFIG).forEach(([type, config]) => {
             const button = document.createElement('button');
-            button.textContent = icon;
-            button.title = `Change to ${type}`;
+            button.textContent = config.displayName;
+            button.title = `Change to ${config.displayName}`;
             button.dataset.newType = type;
+            button.dataset.icon = config.icon;
+            button.style.color = config.color;
             buttonsContainer.appendChild(button);
         });
 
+        // Add custom text if present
+        if (tag.customText) {
+            const textDisplay = document.createElement('div');
+            textDisplay.className = 'tag-custom-text';
+            textDisplay.textContent = tag.customText;
+            menu.appendChild(textDisplay);
+        }
+
         // Add delete button
         const deleteButton = document.createElement('button');
-        deleteButton.textContent = 'X';
+        deleteButton.textContent = 'Delete';
         deleteButton.title = 'Delete tag';
         deleteButton.className = 'delete-tag';
         buttonsContainer.appendChild(deleteButton);
@@ -209,7 +219,17 @@ export class TagRenderer {
             if (!tagId) return;
 
             if (event.target.dataset.newType) {
-                this.tagManager.updateTagType(tagId, event.target.dataset.newType);
+                const newType = event.target.dataset.newType;
+                // Check if the new type requires custom text
+                if (TAG_CONFIG[newType].requiresCustomText && !tag.customText) {
+                    const input = prompt('Enter custom text for this tag:');
+                    if (input) {
+                        this.tagManager.updateTag(tagId, newType, input);
+                    }
+                } else {
+                    this.tagManager.updateTagType(tagId, newType);
+                }
+
                 const tagIcon = document.querySelector(`.selection-tag-icon[data-tag-id="${tagId}"]`);
                 if (tagIcon) {
                     const paragraphIds = tagIcon.dataset.paragraphId.split(',');
@@ -250,40 +270,78 @@ export class TagRenderer {
             tag.selections.forEach(selection => {
                 const paragraph = document.getElementById(selection.paragraphId);
                 if (paragraph) {
-                    // Just restore the original text without re-rendering
                     paragraph.innerHTML = paragraph.dataset.originalText;
                 }
             });
         });
     }
 
-    createHighlightedText(originalText, tags) {
-        let result = originalText;
-        let offset = 0;
+    calculateElementPosition(selection, element) {
+        let rects;
+        
+        if (selection instanceof Selection) {
+            const range = selection.getRangeAt(0);
+            rects = range.getClientRects();
+        } else {
+            const paragraph = document.getElementById(selection.paragraphId);
+            if (!paragraph) return null;
 
-        tags.sort((a, b) => a.startOffset - b.startOffset).forEach(tag => {
-            const startPos = tag.startOffset + offset;
-            const endPos = tag.endOffset + offset;
-            const textToWrap = result.substring(startPos, endPos);
-            const wrapped = `<span class="tagged-selection tagged-${tag.tagType}-highlighted" data-tag-id="${tag.id}">${textToWrap}</span>`;
+            const range = document.createRange();
+            const textNode = paragraph.firstChild;
+            range.setStart(textNode, selection.startOffset);
+            range.setEnd(textNode, selection.endOffset);
+            rects = range.getClientRects();
+        }
+
+        if (!rects.length) return null;
+
+        const sidebarRect = this.sidebarElement.getBoundingClientRect();
+        const elementHeight = 32; // Fixed height for consistency
+        const position = (rects[0].top + rects[rects.length - 1].bottom) / 2 - (elementHeight / 2) - sidebarRect.top;
+        
+        return position;
+    }
+
+    updateAddTagButtonPosition(selection) {
+        if (!selection) {
+            this.addTagButton.style.display = 'none';
+            document.querySelectorAll('.selection-tag-icon:not(#add-tag-button)').forEach(icon => {
+                icon.style.opacity = '1';
+                icon.style.transform = 'translateX(0)';
+            });
+            return;
+        }
+
+        const position = this.calculateElementPosition(selection, this.addTagButton);
+        if (position === null) return;
+        
+        this.addTagButton.style.top = `${position}px`;
+        this.addTagButton.style.display = 'flex';
+
+        const addButtonRect = this.addTagButton.getBoundingClientRect();
+        const buttonTop = addButtonRect.top;
+        const buttonBottom = addButtonRect.bottom;
+
+        document.querySelectorAll('.selection-tag-icon:not(#add-tag-button)').forEach(icon => {
+            icon.style.opacity = '1';
+            icon.style.transform = 'translateX(0)';
             
-            result = result.substring(0, startPos) + wrapped + result.substring(endPos);
-            offset += wrapped.length - textToWrap.length;
+            const iconRect = icon.getBoundingClientRect();
+            if (!(iconRect.bottom < buttonTop || iconRect.top > buttonBottom)) {
+                icon.style.opacity = '0.5';
+                icon.style.transform = 'translateX(15px)';
+            }
         });
-
-        return result;
     }
 
     findAvailablePosition(desiredPosition) {
-        // Get all existing tag icons and their positions
         const existingTags = Array.from(document.querySelectorAll('.selection-tag-icon:not(#add-tag-button)'))
             .map(icon => {
                 const top = parseFloat(icon.style.top);
                 const rect = icon.getBoundingClientRect();
-                const height = rect.height;
                 return {
                     top: top,
-                    bottom: top + height
+                    bottom: top + rect.height
                 };
             })
             .filter(pos => !isNaN(pos.top))
@@ -292,15 +350,12 @@ export class TagRenderer {
         let position = desiredPosition;
         let found = false;
 
-        // Keep checking positions until we find a free spot
         while (!found) {
             found = true;
             for (let tag of existingTags) {
-                // Check if current position would overlap with this tag
-                if (Math.abs(tag.top - position) < CONSTANTS.MIN_MARGIN ||
-                    (position > tag.top - CONSTANTS.MIN_MARGIN && position < tag.bottom + CONSTANTS.MIN_MARGIN)) {
-                    // Move below this tag with minimum margin
-                    position = tag.bottom + CONSTANTS.MIN_MARGIN;
+                if (Math.abs(tag.top - position) < 10 ||
+                    (position > tag.top - 10 && position < tag.bottom + 10)) {
+                    position = tag.bottom + 10;
                     found = false;
                     break;
                 }
@@ -316,80 +371,6 @@ export class TagRenderer {
             const paragraphIds = icon.dataset.paragraphId?.split(',') || [];
             if (paragraphIds.includes(paragraphId)) {
                 icon.remove();
-            }
-        });
-    }
-
-    calculateElementPosition(selection, element) {
-        let rects;
-        
-        // Handle both Selection objects and stored selection data
-        if (selection instanceof Selection) {
-            const range = selection.getRangeAt(0);
-            rects = range.getClientRects();
-        } else {
-            // For stored selections, create a range from the offsets
-            const paragraph = document.getElementById(selection.paragraphId);
-            if (!paragraph) return null;
-
-            const range = document.createRange();
-            const textNode = paragraph.firstChild;
-            range.setStart(textNode, selection.startOffset);
-            range.setEnd(textNode, selection.endOffset);
-            rects = range.getClientRects();
-        }
-
-        if (!rects.length) return null;
-
-        // Get sidebar position for coordinate conversion
-        const sidebarRect = this.sidebarElement.getBoundingClientRect();
-
-        // Calculate center position relative to the sidebar
-        // const elementHeight = element.scrollHeight; bugged
-        const elementHeight = 32; // Hardcoded for now
-        const position = (rects[0].top + rects[rects.length - 1].bottom) / 2 - (elementHeight / 2) - sidebarRect.top;
-        
-        return position;
-    }
-
-    updateAddTagButtonPosition(selection) {
-        if (!selection) {
-            this.addTagButton.style.display = 'none';
-            // Reset all tag icons to default state when hiding add button
-            document.querySelectorAll('.selection-tag-icon:not(#add-tag-button)').forEach(icon => {
-                icon.style.opacity = '1';
-                icon.style.transform = 'translateX(0)';
-            });
-            return;
-        }
-
-        const position = this.calculateElementPosition(selection, this.addTagButton);
-        if (position === null) return;
-        
-        // Set position and show button
-        this.addTagButton.style.top = `${position}px`;
-        this.addTagButton.style.display = 'flex';
-
-        // Get updated button position for overlap calculations
-        const addButtonRect = this.addTagButton.getBoundingClientRect();
-        const buttonTop = addButtonRect.top;
-        const buttonBottom = addButtonRect.bottom;
-
-        // Reset and then update opacity and position for overlapping icons
-        document.querySelectorAll('.selection-tag-icon:not(#add-tag-button)').forEach(icon => {
-            // First reset styles
-            icon.style.opacity = '1';
-            icon.style.transform = 'translateX(0)';
-            
-            // Check if icon overlaps with add button's vertical space
-            const iconRect = icon.getBoundingClientRect();
-            const iconTop = iconRect.top;
-            const iconBottom = iconRect.bottom;
-
-            // Check for any overlap in vertical space
-            if (!(iconBottom < buttonTop || iconTop > buttonBottom)) {
-                icon.style.opacity = '0.5';
-                icon.style.transform = 'translateX(15px)';
             }
         });
     }

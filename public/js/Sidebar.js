@@ -483,7 +483,7 @@ export class Sidebar {
         
         paragraphs.forEach(paragraph => {
             const paragraphId = paragraph.id;
-            console.log(paragraphId);
+            // console.log(paragraphId);
             const tags = window.tagManager.getTagsForParagraph(paragraphId);
             
             if (tags && tags.length > 0) {
@@ -547,7 +547,7 @@ try {
     alert('An error occurred while processing your contribution. Please try again.');
     overlay.classList.remove('visible');
 }
-        console.log('Tagged paragraphs:', taggedParagraphs);
+        // console.log('Tagged paragraphs:', taggedParagraphs);
     }
 
     async updateContent() {
@@ -576,21 +576,21 @@ try {
             // Determine which content to show
             if (isContributionsEnabled && hasContributions) {
                 content = this.getContributions(page);
-                console.log('Raw contributions content:', content);
+                // console.log('Raw contributions content:', content);
                 
                 // Ensure proper markdown formatting by adding double line breaks
                 content = content.replace(/\n/g, '\n\n');
-                console.log('Formatted contributions content:', content);
+                // console.log('Formatted contributions content:', content);
                 
                 url += `?contributions=1&customContent=${encodeURIComponent(content)}`;
-                console.log('Request URL:', url);
+                // console.log('Request URL:', url);
             } else if (isPersonalizationEnabled && hasCustomContent) {
                 content = this.getCustomContent(page);
-                console.log('Raw personalization content:', content);
+                // console.log('Raw personalization content:', content);
                 
                 // Add same line break formatting for consistency
                 content = content.replace(/\n/g, '\n\n');
-                console.log('Formatted personalization content:', content);
+                // console.log('Formatted personalization content:', content);
                 
                 url += `?personalization=1&customContent=${encodeURIComponent(content)}`;
             }
