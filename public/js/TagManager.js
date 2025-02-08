@@ -45,8 +45,6 @@ export class TagManager {
             selections: Array.isArray(selection) ? selection : [selection]
         };
 
-        console.log("Selections: ", selection);
-
         // Add tag reference to each involved paragraph
         newTag.selections.forEach(sel => {
             if (!this.tags.has(sel.paragraphId)) {
@@ -54,8 +52,6 @@ export class TagManager {
             }
             this.tags.get(sel.paragraphId).push(newTag);
         });
-
-        console.log('Added tag:', newTag);
 
         this.saveToStorage();
         return newTag;

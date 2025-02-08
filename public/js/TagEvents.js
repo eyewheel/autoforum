@@ -88,6 +88,10 @@ export class TagEvents {
             tagType
         );
 
+        console.log("Input 1:", this.currentSelection.selections)
+        console.log("Input 2:", tagType)
+        // AI.changeParagraphs(this.currentSelection.selections, tagType)
+
         // Render all affected paragraphs
         new Set(this.currentSelection.selections.map(s => s.paragraphId))
             .forEach(paragraphId => {
