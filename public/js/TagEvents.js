@@ -26,6 +26,19 @@ export class TagEvents {
     }
 
     handleMouseUp(event) {
+        // Don't update position if clicking the add tag button itself
+        if (event.target.closest('#add-tag-button')) {
+            return;
+        }
+
+        // Hide menus if clicking outside them and their buttons
+        if (!event.target.closest('.tag-management-menu') && 
+            !event.target.closest('.selection-tag-icon')) {
+            document.querySelectorAll('.tag-management-menu').forEach(menu => {
+                menu.style.display = 'none';
+            });
+        }
+
         setTimeout(() => {
             const selection = window.getSelection();
             const selectionText = selection.toString().trim();
@@ -39,6 +52,11 @@ export class TagEvents {
             } else {
                 // Hide add tag button if no text is selected
                 this.tagRenderer.addTagButton.style.display = 'none';
+                // Reset all tag icons to default state
+                document.querySelectorAll('.selection-tag-icon:not(#add-tag-button)').forEach(icon => {
+                    icon.style.opacity = '1';
+                    icon.style.transform = 'translateX(0)';
+                });
             }
         }, 50);
     }
@@ -75,6 +93,12 @@ export class TagEvents {
             if (menuRect.right > window.innerWidth - 10) {
                 tagMenu.style.left = `${buttonRect.left - menuRect.width - 10}px`;
             }
+
+            // Show input field for add tag menu
+            const inputContainer = tagMenu.querySelector('.tag-input-container');
+            if (inputContainer) {
+                inputContainer.style.display = 'flex';
+            }
         }
     }
 
@@ -106,10 +130,10 @@ export class TagEvents {
         const icon = event.target.closest('.selection-tag-icon');
         if (!icon || icon.id === 'add-tag-button') return;
 
-        const menu = icon.querySelector('.tag-management-menu');
+        const tagId = icon.dataset.tagId;
+        const menu = document.querySelector(`.tag-management-menu[data-tag-icon-id="${tagId}"]`);
         if (!menu) return;
 
-        const tagId = icon.dataset.tagId;
         const isMenuClick = event.target.closest('.tag-management-menu');
 
         if (isMenuClick) {
@@ -123,11 +147,40 @@ export class TagEvents {
             }
             menu.style.display = 'none';
         } else {
-            // Toggle menu visibility
+            // Hide all other menus first
             document.querySelectorAll('.tag-management-menu').forEach(m => {
                 if (m !== menu) m.style.display = 'none';
             });
-            menu.style.display = menu.style.display === 'none' ? 'flex' : 'none';
+            
+            // Toggle current menu
+            const isVisible = menu.style.display === 'flex';
+            menu.style.display = isVisible ? 'none' : 'flex';
+            
+            if (!isVisible) {
+                // Get the icon's position including scroll
+                const buttonRect = icon.getBoundingClientRect();
+                const scrollX = window.pageXOffset || document.documentElement.scrollLeft;
+                const scrollY = window.pageYOffset || document.documentElement.scrollTop;
+
+                // Position menu using viewport coordinates
+                const menuTop = buttonRect.top + window.scrollY;
+                const menuLeft = buttonRect.right + 5 + window.scrollX;
+                
+                menu.style.left = `${menuLeft}px`;
+                menu.style.top = `${menuTop}px`;
+
+                // Check if menu would go outside viewport
+                const menuRect = menu.getBoundingClientRect();
+                if (menuRect.right > window.innerWidth - 10) {
+                    menu.style.left = `${buttonRect.left - menuRect.width - 5 + scrollX}px`;
+                }
+
+                // Hide input field for regular tag menus
+                const inputContainer = menu.querySelector('.tag-input-container');
+                if (inputContainer) {
+                    inputContainer.style.display = 'none';
+                }
+            }
         }
     }
 

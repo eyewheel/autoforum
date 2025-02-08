@@ -31,6 +31,7 @@ export class TagRenderer {
         menu.style.display = 'none';
         document.body.appendChild(menu);
         
+        // Add tag buttons
         Object.entries(TAG_ICONS).forEach(([type, icon]) => {
             const button = document.createElement('button');
             button.textContent = icon;
@@ -38,8 +39,51 @@ export class TagRenderer {
             button.dataset.tagType = type;
             menu.appendChild(button);
         });
+
+        // Add input container
+        const inputContainer = document.createElement('div');
+        inputContainer.className = 'tag-input-container';
+        inputContainer.style.display = 'none';
+        menu.appendChild(inputContainer);
+
+        // Add input field
+        const input = document.createElement('input');
+        input.type = 'text';
+        input.placeholder = 'Enter tag text...';
+        input.className = 'tag-input';
+        inputContainer.appendChild(input);
+
+        // Add submit button
+        const submitButton = document.createElement('button');
+        submitButton.className = 'tag-submit';
+        submitButton.innerHTML = '→';
+        submitButton.title = 'Submit';
+        inputContainer.appendChild(submitButton);
+
+        // Handle input events
+        input.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                console.log('Tag text submitted:', input.value);
+                input.value = '';
+                this.hideMenus();
+            }
+        });
+
+        submitButton.addEventListener('click', () => {
+            console.log('Tag text submitted:', input.value);
+            input.value = '';
+            this.hideMenus();
+        });
         
         return menu;
+    }
+
+    hideMenus() {
+        this.tagMenu.style.display = 'none';
+        this.addTagButton.style.display = 'none';
+        document.querySelectorAll('.tag-management-menu').forEach(menu => {
+            menu.style.display = 'none';
+        });
     }
 
     renderParagraph(paragraphId) {
@@ -49,7 +93,7 @@ export class TagRenderer {
             return;
         }
 
-        // Clear existing content
+        // Clear existing content and restore original text
         const originalText = paragraph.dataset.originalText;
         paragraph.innerHTML = originalText;
 
@@ -60,20 +104,9 @@ export class TagRenderer {
         const tags = this.tagManager.getTagsForParagraph(paragraphId);
         if (!tags.length) return;
 
-        // Render tags
+        // Render tag icons and their hover handlers
         tags.forEach(tag => {
             this.renderTag(tag, paragraph);
-        });
-
-        // Handle multi-paragraph tags that start in this paragraph
-        const multiParagraphTags = this.tagManager.getMultiParagraphTags();
-        multiParagraphTags.forEach(tag => {
-            if (tag.selections.some(sel => sel.paragraphId === paragraphId)) {
-                const selection = tag.selections.find(sel => sel.paragraphId === paragraphId);
-                if (selection) {
-                    this.highlightParagraphSelection(paragraph, selection, tag);
-                }
-            }
         });
     }
 
@@ -109,9 +142,10 @@ export class TagRenderer {
         // Set paragraphIds as a comma-separated list for multi-paragraph tags
         icon.dataset.paragraphId = tag.selections.map(s => s.paragraphId).join(',');
 
-        // Add management menu
+        // Create management menu
         const menu = this.createTagManagementMenu(tag);
-        icon.appendChild(menu);
+        menu.dataset.tagIconId = tag.id;  // Add reference to the tag icon
+        document.body.appendChild(menu);
 
         // Add hover handlers
         this.addTagIconListeners(icon, tag);
@@ -158,12 +192,14 @@ export class TagRenderer {
 
         icon.addEventListener('mouseleave', () => {
             tag.selections.forEach(selection => {
-                this.renderParagraph(selection.paragraphId);
+                const paragraph = document.getElementById(selection.paragraphId);
+                if (paragraph) {
+                    // Just restore the original text without re-rendering
+                    paragraph.innerHTML = paragraph.dataset.originalText;
+                }
             });
         });
     }
-
-
 
     createHighlightedText(originalText, tags) {
         let result = originalText;
@@ -183,32 +219,74 @@ export class TagRenderer {
     }
 
     calculateTagPosition(tag, paragraph, selection) {
-        // Create temporary span for position calculation
-        const tempSpan = document.createElement('span');
-        tempSpan.textContent = paragraph.dataset.originalText.substring(
-            selection.startOffset,
-            selection.endOffset
-        );
-        paragraph.appendChild(tempSpan);
+        const originalText = paragraph.dataset.originalText;
         
-        const rect = tempSpan.getBoundingClientRect();
+        // Find first and last line by inserting spans at start and end of selection
+        const beforeText = originalText.substring(0, selection.startOffset);
+        const selectedText = originalText.substring(selection.startOffset, selection.endOffset);
+        const afterText = originalText.substring(selection.endOffset);
+        
+        paragraph.innerHTML = `${beforeText}<span id="sel-start"></span>${selectedText}<span id="sel-end"></span>${afterText}`;
+        
+        const startSpan = document.getElementById('sel-start');
+        const endSpan = document.getElementById('sel-end');
+        
+        const startRect = startSpan.getBoundingClientRect();
+        const endRect = endSpan.getBoundingClientRect();
+
+        // Dynamically calculate height
+        const tempIcon = document.createElement('div');
+        tempIcon.className = 'selection-tag-icon';
+        tempIcon.style.display = 'none'; // Keep it hidden
+        document.body.appendChild(tempIcon); // Append to body to compute styles
+        const computedStyle = window.getComputedStyle(tempIcon);
+        const height = parseFloat(computedStyle.height);
+        document.body.removeChild(tempIcon); // Clean up temporary element
+        
+        // Restore original content
+        paragraph.innerHTML = originalText;
+
+        // Get sidebar position for coordinate conversion
         const sidebarRect = this.sidebarElement.getBoundingClientRect();
-        const position = (rect.top + rect.bottom) / 2 - sidebarRect.top;
         
-        paragraph.removeChild(tempSpan);
+        // Calculate middle position between first and last line, converting to sidebar coordinates
+        const position = (startRect.top + endRect.bottom) / 2 - sidebarRect.top;
         
-        // Adjust position if overlapping with other tags
+        // Find available position that doesn't overlap with existing tags
         return this.findAvailablePosition(position);
     }
 
     findAvailablePosition(desiredPosition) {
-        const existingPositions = Array.from(document.querySelectorAll('.selection-tag-icon:not(#add-tag-button)'))
-            .map(icon => parseFloat(icon.style.top))
-            .sort((a, b) => a - b);
+        // Get all existing tag icons and their positions
+        const existingTags = Array.from(document.querySelectorAll('.selection-tag-icon:not(#add-tag-button)'))
+            .map(icon => {
+                const top = parseFloat(icon.style.top);
+                const rect = icon.getBoundingClientRect();
+                const height = rect.height;
+                return {
+                    top: top,
+                    bottom: top + height
+                };
+            })
+            .filter(pos => !isNaN(pos.top))
+            .sort((a, b) => a.top - b.top);
 
         let position = desiredPosition;
-        while (existingPositions.some(p => Math.abs(p - position) < CONSTANTS.MIN_MARGIN)) {
-            position += CONSTANTS.TAG_SPACING;
+        let found = false;
+
+        // Keep checking positions until we find a free spot
+        while (!found) {
+            found = true;
+            for (let tag of existingTags) {
+                // Check if current position would overlap with this tag
+                if (Math.abs(tag.top - position) < CONSTANTS.MIN_MARGIN ||
+                    (position > tag.top - CONSTANTS.MIN_MARGIN && position < tag.bottom + CONSTANTS.MIN_MARGIN)) {
+                    // Move below this tag with minimum margin
+                    position = tag.bottom + CONSTANTS.MIN_MARGIN;
+                    found = false;
+                    break;
+                }
+            }
         }
 
         return position;
@@ -227,6 +305,11 @@ export class TagRenderer {
     updateAddTagButtonPosition(selection) {
         if (!selection) {
             this.addTagButton.style.display = 'none';
+            // Reset all tag icons to default state when hiding add button
+            document.querySelectorAll('.selection-tag-icon:not(#add-tag-button)').forEach(icon => {
+                icon.style.opacity = '1';
+                icon.style.transform = 'translateX(0)';
+            });
             return;
         }
 
@@ -234,11 +317,38 @@ export class TagRenderer {
         const rects = range.getClientRects();
         if (!rects.length) return;
 
+        // Get sidebar position for coordinate conversion
         const sidebarRect = this.sidebarElement.getBoundingClientRect();
-        const verticalCenter = (rects[0].top + rects[rects.length - 1].bottom) / 2;
-        const position = this.findAvailablePosition(verticalCenter - sidebarRect.top);
 
+        // Calculate position using the same formula as calculateTagPosition
+        const buttonHeight = this.addTagButton.offsetHeight;
+        const position = (rects[0].top + rects[rects.length - 1].bottom) / 2 - (buttonHeight / 2) - sidebarRect.top;
+        
+        // Set position and show button
         this.addTagButton.style.top = `${position}px`;
         this.addTagButton.style.display = 'flex';
+
+        // Get updated button position for overlap calculations
+        const addButtonRect = this.addTagButton.getBoundingClientRect();
+        const buttonTop = addButtonRect.top;
+        const buttonBottom = addButtonRect.bottom;
+
+        // Reset and then update opacity and position for overlapping icons
+        document.querySelectorAll('.selection-tag-icon:not(#add-tag-button)').forEach(icon => {
+            // First reset styles
+            icon.style.opacity = '1';
+            icon.style.transform = 'translateX(0)';
+            
+            // Check if icon overlaps with add button's vertical space
+            const iconRect = icon.getBoundingClientRect();
+            const iconTop = iconRect.top;
+            const iconBottom = iconRect.bottom;
+
+            // Check for any overlap in vertical space
+            if (!(iconBottom < buttonTop || iconTop > buttonBottom)) {
+                icon.style.opacity = '0.5';
+                icon.style.transform = 'translateX(10px)';
+            }
+        });
     }
 }
