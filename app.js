@@ -17,10 +17,8 @@ let paragraphCounter = 0;
 renderer.paragraph = (token) => {
     const id = `p-${paragraphCounter++}`;
     const content = typeof token === 'object' ? token.text : token;
-    return `<div class="paragraph-container">
-              <div class="paragraph" id="${id}">
-                ${content}
-              </div>
+    return `<div class="paragraph" id="${id}">
+              ${content}
             </div>`;
 };
 
