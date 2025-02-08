@@ -1,4 +1,5 @@
 import { CONSTANTS } from './constants.js';
+import { DEFAULT_TAGS } from './defaultTags.js';
 
 export class TagManager {
     constructor() {
@@ -9,25 +10,49 @@ export class TagManager {
 
     loadFromStorage() {
         try {
-            const stored = localStorage.getItem(CONSTANTS.STORAGE_KEY);
+            const storageKey = CONSTANTS.STORAGE_KEY + '_' + this.getCurrentPage();
+            const stored = localStorage.getItem(storageKey);
+            
             if (stored) {
+                // If tags exist in localStorage, use them
                 const parsed = JSON.parse(stored);
                 Object.entries(parsed).forEach(([paragraphId, tags]) => {
                     this.tags.set(paragraphId, tags);
                 });
-                // Find highest existing tag ID to set counter
-                this.tagCounter = this.getHighestTagId() + 1;
+            } else {
+                // If no tags in localStorage, check for default tags
+                const currentPage = this.getCurrentPage();
+                const defaultTags = DEFAULT_TAGS[currentPage];
+                
+                if (defaultTags) {
+                    // Load default tags if they exist
+                    Object.entries(defaultTags).forEach(([paragraphId, tags]) => {
+                        this.tags.set(paragraphId, tags);
+                    });
+                    // Save default tags to localStorage
+                    this.saveToStorage();
+                }
             }
+            
+            // Find highest existing tag ID to set counter
+            this.tagCounter = this.getHighestTagId() + 1;
         } catch (error) {
             console.error('Error loading tags from storage:', error);
             this.tags.clear();
         }
     }
 
+    getCurrentPage() {
+        const path = window.location.pathname;
+        const pageName = path.split('/').pop() || 'index';
+        return pageName;
+    }
+
     saveToStorage() {
         try {
+            const storageKey = CONSTANTS.STORAGE_KEY + '_' + this.getCurrentPage();
             const toSave = Object.fromEntries(this.tags);
-            localStorage.setItem(CONSTANTS.STORAGE_KEY, JSON.stringify(toSave));
+            localStorage.setItem(storageKey, JSON.stringify(toSave));
         } catch (error) {
             console.error('Error saving tags to storage:', error);
         }
@@ -104,7 +129,6 @@ export class TagManager {
         });
         return Array.from(multiParagraphTags);
     }
-
 
     getTagsForParagraph(paragraphId) {
         return [...(this.tags.get(paragraphId) || [])].sort((a, b) => 

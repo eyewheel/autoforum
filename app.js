@@ -19,7 +19,7 @@ const openrouter = createOpenRouter({
 app.use(express.static('public'));
 app.use(express.json()); // Middleware to parse JSON request bodies
 
-// Custom renderer to wrap paragraphs (Keep your existing renderer)
+// Custom renderer to wrap paragraphs
 const renderer = new marked.Renderer();
 let paragraphCounter = 0;
 
@@ -31,7 +31,7 @@ renderer.paragraph = (token) => {
             </div>`;
 };
 
-// Configure marked options (Keep your existing marked options)
+// Configure marked options
 const options = {
     gfm: true,
     breaks: true,
@@ -42,10 +42,35 @@ const options = {
     headerPrefix: 'section-'
 };
 
-// Create new marked instance with options (Keep your existing parser)
+// Create new marked instance with options
 const parser = new marked.Marked(options);
 
-// Route to serve markdown files (Keep your existing markdown route)
+// Root route to serve index.html
+app.get('/', async (req, res) => {
+    try {
+        const indexPath = path.join(__dirname, 'public', 'index.html');
+        res.sendFile(indexPath);
+    } catch (error) {
+        console.error('Error serving index.html:', error);
+        res.status(500).send('Server error');
+    }
+});
+
+// API endpoint to list available pages
+app.get('/api/pages', async (req, res) => {
+    try {
+        const contentDir = path.join(__dirname, 'content');
+        const files = await fs.readdir(contentDir);
+        const markdownFiles = files.filter(file => file.endsWith('.md'));
+        const pageNames = markdownFiles.map(file => file.replace('.md', ''));
+        res.json(pageNames);
+    } catch (error) {
+        console.error('Error listing pages:', error);
+        res.status(500).json({ error: 'Failed to list pages' });
+    }
+});
+
+// Route to serve markdown files
 app.get('/:filename', async (req, res) => {
     try {
         const filename = req.params.filename;
@@ -73,9 +98,9 @@ app.get('/:filename', async (req, res) => {
     }
 });
 
-// New API endpoint to handle OpenRouter requests
+// API endpoint to handle OpenRouter requests
 app.post('/api/ask-openrouter', async (req, res) => {
-    const prompt = req.body.prompt; // Get prompt from request body
+    const prompt = req.body.prompt;
 
     if (!prompt) {
         return res.status(400).json({ error: "Prompt is required" });
@@ -86,7 +111,7 @@ app.post('/api/ask-openrouter', async (req, res) => {
             model: openrouter.chat('google/gemini-2.0-flash-001'),
             prompt: prompt,
         });
-        res.json({ response: text }); // Send the response back to the client
+        res.json({ response: text });
     } catch (error) {
         console.error("Error calling OpenRouter:", error);
         res.status(500).json({ error: "Failed to get response from OpenRouter" });

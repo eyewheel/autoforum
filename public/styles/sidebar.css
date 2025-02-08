@@ -1,0 +1,172 @@
+/* Navigation Sidebar */
+.nav-sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    height: 100vh;
+    width: 300px; /* Increased from 250px */
+    background-color: #f8f9fa;
+    box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1);
+    transform: translateX(-100%);
+    transition: transform 0.3s ease;
+    z-index: 1000;
+    display: flex;
+    flex-direction: column;
+}
+
+.nav-sidebar.open {
+    transform: translateX(0);
+}
+
+/* Close button */
+.nav-sidebar-close {
+    position: absolute;
+    right: 15px; /* Increased from 10px */
+    top: 15px; /* Increased from 10px */
+    background: none;
+    border: none;
+    font-size: 24px; /* Increased from 20px */
+    cursor: pointer;
+    padding: 5px;
+    color: #666;
+}
+
+.nav-sidebar-close:hover {
+    color: #333;
+}
+
+/* Sidebar content */
+.nav-sidebar-content {
+    padding: 30px; /* Increased from 20px */
+    padding-top: 60px; /* Increased from 50px */
+}
+
+.nav-sidebar-content h2 {
+    margin: 0 0 25px 0; /* Increased from 20px */
+    color: #333;
+    font-size: 1.3em; /* Increased from 1.2em */
+}
+
+/* Navigation links */
+.nav-sidebar-links {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.nav-sidebar-links li {
+    margin: 15px 0; /* Increased from 10px */
+}
+
+.nav-sidebar-links a {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    color: #333;
+    text-decoration: none;
+    padding: 10px 15px; /* Added horizontal padding */
+    border-radius: 6px;
+    transition: background-color 0.2s, color 0.2s;
+}
+
+.nav-sidebar-links a:hover {
+    background-color: #e9ecef;
+    color: #007bff;
+}
+
+.nav-sidebar-links a.active {
+    background-color: #007bff;
+    color: white;
+}
+
+/* Tag count badge */
+.nav-tag-count {
+    background-color: #e9ecef;
+    color: #666;
+    padding: 3px 8px;
+    border-radius: 12px;
+    font-size: 0.9em;
+    min-width: 24px;
+    text-align: center;
+}
+
+.nav-sidebar-links a.active .nav-tag-count {
+    background-color: white;
+    color: #007bff;
+}
+
+.nav-sidebar-links a:hover .nav-tag-count {
+    background-color: #dee2e6;
+}
+
+/* Toggle button */
+.nav-sidebar-toggle {
+    position: fixed;
+    left: 15px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: rgba(248, 249, 250, 0.2);
+    border: none;
+    border-radius: 50%;
+    width: 50px;
+    height: 50px;
+    cursor: pointer;
+    z-index: 999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s ease;
+    opacity: 0.4;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+/* Create a pseudo-element for the hover area */
+.nav-sidebar-toggle::before {
+    content: '';
+    position: absolute;
+    left: -300px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 300px;
+    height: 100%;
+    z-index: 998;
+}
+
+.nav-sidebar-toggle:hover {
+    background: rgba(248, 249, 250, 0.6);
+    opacity: 0.8;
+}
+
+/* When hovering over the extended area */
+.nav-sidebar-toggle:hover::before,
+.nav-sidebar-toggle:hover {
+    opacity: 0.8;
+}
+
+/* Icon for toggle button */
+.nav-sidebar-toggle-icon {
+    width: 24px; /* Increased from 20px */
+    height: 24px; /* Increased from 20px */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Overlay for click-outside behavior */
+.nav-sidebar-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.3);
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.2s;
+    z-index: 999;
+}
+
+.nav-sidebar-overlay.visible {
+    opacity: 1;
+    visibility: visible;
+}

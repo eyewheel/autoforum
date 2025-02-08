@@ -81,24 +81,8 @@ export class TagEvents {
         event.stopPropagation();
         
         if (this.currentSelection) {
-            const tagMenu = this.tagRenderer.tagMenu;
-            const buttonRect = event.target.getBoundingClientRect();
-            
-            tagMenu.style.display = 'flex';
-            tagMenu.style.left = `${buttonRect.right + 10}px`;
-            tagMenu.style.top = `${buttonRect.top}px`;
-
-            // Check if menu would go outside viewport
-            const menuRect = tagMenu.getBoundingClientRect();
-            if (menuRect.right > window.innerWidth - 10) {
-                tagMenu.style.left = `${buttonRect.left - menuRect.width - 10}px`;
-            }
-
-            // Show input field for add tag menu
-            const inputContainer = tagMenu.querySelector('.tag-input-container');
-            if (inputContainer) {
-                inputContainer.style.display = 'flex';
-            }
+            // Use the common click handler for positioning
+            this.handleTagIconClick(event);
         }
     }
 
@@ -128,25 +112,20 @@ export class TagEvents {
 
     handleTagIconClick(event) {
         const icon = event.target.closest('.selection-tag-icon');
-        if (!icon || icon.id === 'add-tag-button') return;
+        if (!icon) return;
 
-        const tagId = icon.dataset.tagId;
-        const menu = document.querySelector(`.tag-management-menu[data-tag-icon-id="${tagId}"]`);
+        // Get appropriate menu based on icon type
+        let menu;
+        if (icon.id === 'add-tag-button') {
+            menu = this.tagRenderer.tagMenu;
+        } else {
+            const tagId = icon.dataset.tagId;
+            menu = document.querySelector(`.tag-management-menu[data-tag-icon-id="${tagId}"]`);
+        }
         if (!menu) return;
 
-        const isMenuClick = event.target.closest('.tag-management-menu');
-
-        if (isMenuClick) {
-            // Handle menu item clicks
-            if (event.target.dataset.newType) {
-                this.tagManager.updateTagType(tagId, event.target.dataset.newType);
-                this.tagRenderer.renderParagraph(icon.dataset.paragraphId);
-            } else if (event.target.classList.contains('delete-tag')) {
-                this.tagManager.deleteTag(tagId);
-                this.tagRenderer.renderParagraph(icon.dataset.paragraphId);
-            }
-            menu.style.display = 'none';
-        } else {
+        // Only proceed if this is not a click on the menu itself
+        if (!event.target.closest('.tag-management-menu')) {
             // Hide all other menus first
             document.querySelectorAll('.tag-management-menu').forEach(m => {
                 if (m !== menu) m.style.display = 'none';
@@ -157,29 +136,48 @@ export class TagEvents {
             menu.style.display = isVisible ? 'none' : 'flex';
             
             if (!isVisible) {
-                // Get the icon's position including scroll
-                const buttonRect = icon.getBoundingClientRect();
-                const scrollX = window.pageXOffset || document.documentElement.scrollLeft;
-                const scrollY = window.pageYOffset || document.documentElement.scrollTop;
-
-                // Position menu using viewport coordinates
-                const menuTop = buttonRect.top + window.scrollY;
-                const menuLeft = buttonRect.right + 5 + window.scrollX;
-                
-                menu.style.left = `${menuLeft}px`;
-                menu.style.top = `${menuTop}px`;
-
-                // Check if menu would go outside viewport
-                const menuRect = menu.getBoundingClientRect();
-                if (menuRect.right > window.innerWidth - 10) {
-                    menu.style.left = `${buttonRect.left - menuRect.width - 5 + scrollX}px`;
-                }
-
-                // Hide input field for regular tag menus
+                // Show/hide input container based on icon type
                 const inputContainer = menu.querySelector('.tag-input-container');
                 if (inputContainer) {
-                    inputContainer.style.display = 'none';
+                    inputContainer.style.display = icon.id === 'add-tag-button' ? 'flex' : 'none';
                 }
+
+                // Get the icon's position
+                const buttonRect = icon.getBoundingClientRect();
+                const tagSidebarWidth = document.querySelector('#tag-sidebar').offsetWidth;
+
+                // Get the current scroll position
+                const scrollY = window.scrollY;
+                const scrollX = window.scrollX;
+
+                // Calculate the absolute top and left position of the button
+                const absoluteButtonTop = buttonRect.top + scrollY;
+                const absoluteButtonLeft = buttonRect.left + scrollX;
+                const absoluteButtonRight = buttonRect.right + scrollX; // Also calculate absolute right if needed
+
+                // First show the menu invisibly to calculate its size
+                menu.style.visibility = 'hidden';
+                menu.style.display = 'flex';
+
+                // Get measurements after showing content
+                const menuRect = menu.getBoundingClientRect();
+
+                // Position the menu using the absolute position
+                menu.style.left = `${absoluteButtonRight + 5}px`; // Use absoluteButtonRight
+                menu.style.top = `${absoluteButtonTop}px`; // Use absoluteButtonTop
+
+
+                // Check if menu would go outside viewport
+                // if (buttonRect.right + menuWidth + 5 > window.innerWidth - 10) {
+                //     menu.style.left = `${buttonRect.left - menuWidth - 5}px`;
+                // }
+
+                // Check if menu would go outside viewport
+                // if (menuRect.right > window.innerWidth - 10) {
+                //     menu.style.left = `${buttonRect.left - menuRect.width - 5 + scrollX}px`;
+                // }
+                // Make the menu visible
+                menu.style.visibility = 'visible';
             }
         }
     }

@@ -66,12 +66,12 @@
     border-radius: 6px; /* Increased from 4px */
     transition: background-color 0.2s;
     display: flex;
-    justify-content: center;
+    /* justify-content: center; */
     font-size: 18px; /* Added explicit font size */
 }
 
 .tag-management-menu button:hover {
-    background-color: #f0f0f0;
+    background-color: #f8f9fa;
 }
 
 /* Tag input container styles */
@@ -96,21 +96,24 @@
 }
 
 .tag-input:focus {
-    border-color: #1976d2;
+    border-color: #0d6efd;
+    box-shadow: 0 0 0 2px rgba(13, 110, 253, 0.3);
 }
 
 /* Tag submit button styles */
 .tag-submit {
     padding: 8px 12px !important;
-    background-color: #1976d2 !important;
+    background-color: #0d6efd !important;
     color: white !important;
     border-radius: 6px !important;
     cursor: pointer;
-    transition: background-color 0.2s;
+    transition: background-color 0.2s, transform 0.2s;
+    box-shadow: 0 2px 4px rgba(13, 110, 253, 0.2);
 }
 
 .tag-submit:hover {
-    background-color: #1565c0 !important;
+    background-color: #0b5ed7 !important;
+    transform: translateY(-1px);
 }
 
 /* Tag colors */
@@ -141,15 +144,15 @@
 }
 
 .tagged-important-highlighted {
-    background-color: rgba(211, 47, 47, 0.1);
+    background-color: rgba(211, 47, 47, 0.15);
 }
 
 .tagged-question-highlighted {
-    background-color: rgba(25, 118, 210, 0.1);
+    background-color: rgba(25, 118, 210, 0.15);
 }
 
 .tagged-definition-highlighted {
-    background-color: rgba(56, 142, 60, 0.1);
+    background-color: rgba(56, 142, 60, 0.15);
 }
 
 /* Tagged selection styles */
@@ -165,10 +168,4 @@
 .tag-management-menu *:hover {
     transform: none !important;
     transition: none !important;
-}
-
-.tagged-selection.tagged-important-highlighted,
-.tagged-selection.tagged-question-highlighted,
-.tagged-selection.tagged-definition-highlighted {
-    background-color: yellow; /* Or any desired highlight color */
 }

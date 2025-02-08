@@ -25,11 +25,15 @@ export class TagRenderer {
 
     createTagMenu() {
         const menu = document.createElement('div');
-        menu.className = 'tag-management-menu';
-        menu.style.position = 'fixed';
-        menu.style.zIndex = '1000';
+        menu.className = 'tag-management-menu add-tag-menu'; // Add specific class for add tag menu
+        menu.style.position = 'absolute';
         menu.style.display = 'none';
         document.body.appendChild(menu);
+        
+        // Create buttons container
+        const buttonsContainer = document.createElement('div');
+        buttonsContainer.className = 'tag-buttons-container';
+        menu.appendChild(buttonsContainer);
         
         // Add tag buttons
         Object.entries(TAG_ICONS).forEach(([type, icon]) => {
@@ -37,7 +41,7 @@ export class TagRenderer {
             button.textContent = icon;
             button.title = `Add ${type} tag`;
             button.dataset.tagType = type;
-            menu.appendChild(button);
+            buttonsContainer.appendChild(button);
         });
 
         // Add input container
@@ -125,10 +129,14 @@ export class TagRenderer {
         
         // Find the selection for this paragraph
         const selection = tag.selections.find(s => s.paragraphId === paragraph.id);
+        // console.log(selection);
         if (selection) {
-            const position = this.calculateTagPosition(tag, paragraph, selection);
-            iconElement.style.top = `${position}px`;
-            this.sidebarElement.appendChild(iconElement);
+            const position = this.calculateElementPosition(selection, iconElement);
+            if (position !== null) {
+                const adjustedPosition = this.findAvailablePosition(position);
+                iconElement.style.top = `${adjustedPosition}px`;
+                this.sidebarElement.appendChild(iconElement);
+            }
         }
     }
 
@@ -155,8 +163,14 @@ export class TagRenderer {
 
     createTagManagementMenu(tag) {
         const menu = document.createElement('div');
-        menu.className = 'tag-management-menu';
+        menu.className = 'tag-management-menu tag-icon-menu'; // Add specific class for icon menu
+        menu.style.position = 'absolute';
         menu.style.display = 'none';
+
+        // Create buttons container
+        const buttonsContainer = document.createElement('div');
+        buttonsContainer.className = 'tag-buttons-container';
+        menu.appendChild(buttonsContainer);
 
         // Add type change buttons
         Object.entries(TAG_ICONS).forEach(([type, icon]) => {
@@ -164,7 +178,7 @@ export class TagRenderer {
             button.textContent = icon;
             button.title = `Change to ${type}`;
             button.dataset.newType = type;
-            menu.appendChild(button);
+            buttonsContainer.appendChild(button);
         });
 
         // Add delete button
@@ -172,7 +186,35 @@ export class TagRenderer {
         deleteButton.textContent = 'X';
         deleteButton.title = 'Delete tag';
         deleteButton.className = 'delete-tag';
-        menu.appendChild(deleteButton);
+        buttonsContainer.appendChild(deleteButton);
+
+        // Add click handler to menu buttons
+        menu.addEventListener('click', (event) => {
+            event.stopPropagation();
+            const tagId = menu.dataset.tagIconId;
+            if (!tagId) return;
+
+            if (event.target.dataset.newType) {
+                this.tagManager.updateTagType(tagId, event.target.dataset.newType);
+                const tagIcon = document.querySelector(`.selection-tag-icon[data-tag-id="${tagId}"]`);
+                if (tagIcon) {
+                    const paragraphIds = tagIcon.dataset.paragraphId.split(',');
+                    paragraphIds.forEach(paragraphId => {
+                        this.renderParagraph(paragraphId);
+                    });
+                }
+            } else if (event.target.classList.contains('delete-tag')) {
+                this.tagManager.deleteTag(tagId);
+                const tagIcon = document.querySelector(`.selection-tag-icon[data-tag-id="${tagId}"]`);
+                if (tagIcon) {
+                    const paragraphIds = tagIcon.dataset.paragraphId.split(',');
+                    paragraphIds.forEach(paragraphId => {
+                        this.renderParagraph(paragraphId);
+                    });
+                }
+            }
+            menu.style.display = 'none';
+        });
 
         return menu;
     }
@@ -216,44 +258,6 @@ export class TagRenderer {
         });
 
         return result;
-    }
-
-    calculateTagPosition(tag, paragraph, selection) {
-        const originalText = paragraph.dataset.originalText;
-        
-        // Find first and last line by inserting spans at start and end of selection
-        const beforeText = originalText.substring(0, selection.startOffset);
-        const selectedText = originalText.substring(selection.startOffset, selection.endOffset);
-        const afterText = originalText.substring(selection.endOffset);
-        
-        paragraph.innerHTML = `${beforeText}<span id="sel-start"></span>${selectedText}<span id="sel-end"></span>${afterText}`;
-        
-        const startSpan = document.getElementById('sel-start');
-        const endSpan = document.getElementById('sel-end');
-        
-        const startRect = startSpan.getBoundingClientRect();
-        const endRect = endSpan.getBoundingClientRect();
-
-        // Dynamically calculate height
-        const tempIcon = document.createElement('div');
-        tempIcon.className = 'selection-tag-icon';
-        tempIcon.style.display = 'none'; // Keep it hidden
-        document.body.appendChild(tempIcon); // Append to body to compute styles
-        const computedStyle = window.getComputedStyle(tempIcon);
-        const height = parseFloat(computedStyle.height);
-        document.body.removeChild(tempIcon); // Clean up temporary element
-        
-        // Restore original content
-        paragraph.innerHTML = originalText;
-
-        // Get sidebar position for coordinate conversion
-        const sidebarRect = this.sidebarElement.getBoundingClientRect();
-        
-        // Calculate middle position between first and last line, converting to sidebar coordinates
-        const position = (startRect.top + endRect.bottom) / 2 - sidebarRect.top;
-        
-        // Find available position that doesn't overlap with existing tags
-        return this.findAvailablePosition(position);
     }
 
     findAvailablePosition(desiredPosition) {
@@ -302,6 +306,38 @@ export class TagRenderer {
         });
     }
 
+    calculateElementPosition(selection, element) {
+        let rects;
+        
+        // Handle both Selection objects and stored selection data
+        if (selection instanceof Selection) {
+            const range = selection.getRangeAt(0);
+            rects = range.getClientRects();
+        } else {
+            // For stored selections, create a range from the offsets
+            const paragraph = document.getElementById(selection.paragraphId);
+            if (!paragraph) return null;
+
+            const range = document.createRange();
+            const textNode = paragraph.firstChild;
+            range.setStart(textNode, selection.startOffset);
+            range.setEnd(textNode, selection.endOffset);
+            rects = range.getClientRects();
+        }
+
+        if (!rects.length) return null;
+
+        // Get sidebar position for coordinate conversion
+        const sidebarRect = this.sidebarElement.getBoundingClientRect();
+
+        // Calculate center position relative to the sidebar
+        // const elementHeight = element.scrollHeight; bugged
+        const elementHeight = 32; // Hardcoded for now
+        const position = (rects[0].top + rects[rects.length - 1].bottom) / 2 - (elementHeight / 2) - sidebarRect.top;
+        
+        return position;
+    }
+
     updateAddTagButtonPosition(selection) {
         if (!selection) {
             this.addTagButton.style.display = 'none';
@@ -313,16 +349,8 @@ export class TagRenderer {
             return;
         }
 
-        const range = selection.getRangeAt(0);
-        const rects = range.getClientRects();
-        if (!rects.length) return;
-
-        // Get sidebar position for coordinate conversion
-        const sidebarRect = this.sidebarElement.getBoundingClientRect();
-
-        // Calculate position using the same formula as calculateTagPosition
-        const buttonHeight = this.addTagButton.offsetHeight;
-        const position = (rects[0].top + rects[rects.length - 1].bottom) / 2 - (buttonHeight / 2) - sidebarRect.top;
+        const position = this.calculateElementPosition(selection, this.addTagButton);
+        if (position === null) return;
         
         // Set position and show button
         this.addTagButton.style.top = `${position}px`;
