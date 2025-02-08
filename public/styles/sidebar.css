@@ -467,3 +467,57 @@ input:checked + .toggle-slider:before {
 .personalize-popup.loading p {
     display: none;
 }
+
+/* Contribute Overlay */
+.contribute-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.5);
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.3s;
+    z-index: 1100;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.contribute-overlay.visible {
+    opacity: 1;
+    visibility: visible;
+}
+
+.contribute-cancel {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    width: 40px;
+    height: 40px;
+    background-color: #dc3545;
+    color: white;
+    border: none;
+    border-radius: 50%;
+    cursor: pointer;
+    font-size: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background-color 0.2s;
+}
+
+.contribute-cancel:hover {
+    background-color: #c82333;
+}
+
+/* Style for the contribute button */
+.contribute-button {
+    background-color: #28a745;
+    margin-top: 10px;
+}
+
+.contribute-button:hover {
+    background-color: #218838;
+}

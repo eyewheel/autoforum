@@ -1,7 +1,7 @@
 export const TAG_TYPES = {
     IMPORTANT: 'important',
     QUESTION: 'question',
-    DEFINITION: 'definition'
+    DEFINITION: 'would-like-more-real-world-examples'
 };
 
 export const TAG_ICONS = {

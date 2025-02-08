@@ -38,7 +38,7 @@ export class TagRenderer {
         // Add tag buttons
         Object.entries(TAG_ICONS).forEach(([type, icon]) => {
             const button = document.createElement('button');
-            button.textContent = icon;
+            button.textContent = type;
             button.title = `Add ${type} tag`;
             button.dataset.tagType = type;
             buttonsContainer.appendChild(button);

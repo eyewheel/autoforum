@@ -128,7 +128,7 @@
 }
 
 .tag-management-menu button[title^="Change tag to definition"],
-.selection-tag-icon-definition {
+.selection-tag-icon-would-like-more-real-world-examples {
     color: #388e3c;
 }
 
@@ -151,7 +151,7 @@
     background-color: rgba(25, 118, 210, 0.15);
 }
 
-.tagged-definition-highlighted {
+.tagged-would-like-more-real-world-examples-highlighted {
     background-color: rgba(56, 142, 60, 0.15);
 }
 

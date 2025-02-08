@@ -1,5 +1,6 @@
 import { DEFAULT_TAGS } from './defaultTags.js';
 import { CONSTANTS } from './constants.js';
+import { contributeContent } from './ai.js';
 
 export class Sidebar {
     constructor() {
@@ -7,8 +8,10 @@ export class Sidebar {
         
         // Initialize content and state storage
         this.CUSTOM_CONTENT_KEY = 'custom_content';
+        this.CONTRIBUTIONS_KEY = 'contributions_content';
         this.STATE_KEY = 'sidebar_state';
         this.customContent = this.loadCustomContent();
+        this.contributionsContent = this.loadContributions();
         this.state = this.loadState();
         
         // Initialize sidebar
@@ -29,11 +32,59 @@ export class Sidebar {
         }
     }
 
+    loadContributions() {
+        try {
+            const stored = localStorage.getItem(this.CONTRIBUTIONS_KEY);
+            return stored ? JSON.parse(stored) : {};
+        } catch (error) {
+            console.error('Error loading contributions:', error);
+            return {};
+        }
+    }
+
+    hasContributions(page) {
+        return page in this.contributionsContent;
+    }
+
+    getContributions(page) {
+        return this.contributionsContent[page] || null;
+    }
+
+    saveContributions(page, content) {
+        try {
+            this.contributionsContent[page] = content;
+            localStorage.setItem(this.CONTRIBUTIONS_KEY, JSON.stringify(this.contributionsContent));
+            
+            if (this.contributionsInput) {
+                this.contributionsInput.disabled = false;
+                this.contributionsInput.checked = true;
+                
+                // Set global state
+                window.contentVersion = {
+                    hasContributions: true
+                };
+                
+                // Save state to localStorage
+                this.saveState();
+                
+                // Force a content update
+                setTimeout(() => {
+                    this.updateContent();
+                }, 50);
+            }
+        } catch (error) {
+            console.error('Error saving contributions:', error);
+        }
+    }
+
     // Load sidebar state from localStorage
     loadState() {
         try {
             const stored = localStorage.getItem(this.STATE_KEY);
-            return stored ? JSON.parse(stored) : { personalization: false };
+            return stored ? JSON.parse(stored) : {
+                personalization: false,
+                contributions: false
+            };
         } catch (error) {
             console.error('Error loading sidebar state:', error);
             return { personalization: false };
@@ -44,7 +95,8 @@ export class Sidebar {
     saveState() {
         try {
             const state = {
-                personalization: this.personalizationInput?.checked || false
+                personalization: this.personalizationInput?.checked || false,
+                contributions: this.contributionsInput?.checked || false
             };
             localStorage.setItem(this.STATE_KEY, JSON.stringify(state));
         } catch (error) {
@@ -156,9 +208,29 @@ export class Sidebar {
             personalizationInput.checked = false;
         }
         
+        // Set initial contributions toggle state
+        if (this.hasContributions(page)) {
+            contributionsInput.disabled = false;
+            contributionsInput.checked = this.state.contributions;
+        } else {
+            contributionsInput.disabled = true;
+            contributionsInput.checked = false;
+        }
+
+        // Add event listener for contributions toggle
+        contributionsInput.addEventListener('change', () => {
+            this.saveState();
+            window.contentVersion = {
+                hasContributions: this.contributionsInput.checked,
+                hasPersonalization: false
+            };
+            this.updateContent();
+        });
+
         // Update global state to match
         window.contentVersion = {
-            hasPersonalization: personalizationInput.checked && !personalizationInput.disabled
+            hasPersonalization: personalizationInput.checked && !personalizationInput.disabled,
+            hasContributions: contributionsInput.checked && !contributionsInput.disabled
         };
         
         const personalizationSlider = document.createElement('span');
@@ -202,7 +274,16 @@ export class Sidebar {
             document.querySelector('.personalize-popup').classList.add('visible');
         });
 
+        // Create contribute button
+        const contributeButton = document.createElement('button');
+        contributeButton.className = 'personalize-button contribute-button';
+        contributeButton.textContent = 'Contribute';
+        contributeButton.addEventListener('click', () => {
+            this.handleContribute();
+        });
+
         toggleControls.appendChild(personalizeButton);
+        toggleControls.appendChild(contributeButton);
         toggleControls.appendChild(contributionsContainer);
         toggleControls.appendChild(personalizationContainer);
 
@@ -373,6 +454,102 @@ export class Sidebar {
         this.isOpen = false;
     }
 
+    async handleContribute() {
+        // Create overlay if it doesn't exist
+        let overlay = document.querySelector('.contribute-overlay');
+        let cancelButton = document.querySelector('.contribute-cancel');
+        
+        if (!overlay) {
+            overlay = document.createElement('div');
+            overlay.className = 'contribute-overlay';
+            
+            cancelButton = document.createElement('button');
+            cancelButton.className = 'contribute-cancel';
+            cancelButton.textContent = '×';
+            cancelButton.addEventListener('click', () => {
+                overlay.classList.remove('visible');
+            });
+            
+            overlay.appendChild(cancelButton);
+            document.body.appendChild(overlay);
+        }
+
+        // Show overlay
+        overlay.classList.add('visible');
+        
+        // Get all paragraphs with tags
+        const taggedParagraphs = new Map();
+        const paragraphs = document.querySelectorAll('.paragraph');
+        
+        paragraphs.forEach(paragraph => {
+            const paragraphId = paragraph.id;
+            console.log(paragraphId);
+            const tags = window.tagManager.getTagsForParagraph(paragraphId);
+            
+            if (tags && tags.length > 0) {
+                taggedParagraphs.set(paragraphId, {
+                    text: paragraph.dataset.originalText || paragraph.textContent,
+                    tags: tags.map(tag => ({
+                        type: tag.tagType,
+                        selections: tag.selections.filter(s => s.paragraphId === paragraphId)
+                            .map(s => ({
+                                text: s.selectedText,
+                                startOffset: s.startOffset,
+                                endOffset: s.endOffset
+                            }))
+                    }))
+                });
+            }
+        });
+
+        // If no tagged paragraphs, show message and return
+        if (taggedParagraphs.size === 0) {
+            alert('No tagged paragraphs found. Please add tags to contribute.');
+            overlay.classList.remove('visible');
+            return;
+        }
+try {
+    // Add loading indicator
+    const loadingSpinner = document.createElement('div');
+    loadingSpinner.className = 'loading-spinner';
+    overlay.appendChild(loadingSpinner);
+    
+    // Send to LLM and get response
+    const response = await contributeContent(taggedParagraphs);
+    
+    // Get current page path
+    const pathname = window.location.pathname;
+    const page = pathname === '/' ? 'index' : pathname.substring(1);
+    
+    // Save as a contribution
+    this.saveContributions(page, response);
+    
+    // Clean up
+    overlay.classList.remove('visible');
+    loadingSpinner.remove();
+    
+    // Update the contributions toggle
+    if (this.contributionsInput) {
+        this.contributionsInput.disabled = false;
+        this.contributionsInput.checked = true;
+        window.contentVersion = {
+            hasContributions: true,
+            hasPersonalization: false
+        };
+        this.saveState();
+    }
+    
+    // Close the sidebar
+    this.close();
+    
+} catch (error) {
+    console.error('Error during contribution:', error);
+    alert('An error occurred while processing your contribution. Please try again.');
+    overlay.classList.remove('visible');
+}
+        console.log('Tagged paragraphs:', taggedParagraphs);
+    }
+
     async updateContent() {
         // Get current page path
         const pathname = window.location.pathname;
@@ -382,25 +559,43 @@ export class Sidebar {
         const contentContainer = document.getElementById('content');
         if (!contentContainer) return;
 
-        // Check if we need to show personalized content
+        // Check content mode
         const hasCustomContent = this.hasCustomContent(page);
+        const hasContributions = this.hasContributions(page);
         const isPersonalizationEnabled = this.personalizationInput?.checked && !this.personalizationInput?.disabled;
+        const isContributionsEnabled = this.contributionsInput?.checked && !this.contributionsInput?.disabled;
 
-        // Add loading state immediately
+        // Add loading state
         document.body.classList.add('loading-content');
         contentContainer.style.opacity = '0';
 
         try {
-
-            const customContent = this.getCustomContent(page);
-            
             let url = `/api/content/${page}`;
+            let content = null;
             
-            if (isPersonalizationEnabled && hasCustomContent && customContent) {
-                url += `?personalization=1&customContent=${encodeURIComponent(customContent)}`;
+            // Determine which content to show
+            if (isContributionsEnabled && hasContributions) {
+                content = this.getContributions(page);
+                console.log('Raw contributions content:', content);
+                
+                // Ensure proper markdown formatting by adding double line breaks
+                content = content.replace(/\n/g, '\n\n');
+                console.log('Formatted contributions content:', content);
+                
+                url += `?contributions=1&customContent=${encodeURIComponent(content)}`;
+                console.log('Request URL:', url);
+            } else if (isPersonalizationEnabled && hasCustomContent) {
+                content = this.getCustomContent(page);
+                console.log('Raw personalization content:', content);
+                
+                // Add same line break formatting for consistency
+                content = content.replace(/\n/g, '\n\n');
+                console.log('Formatted personalization content:', content);
+                
+                url += `?personalization=1&customContent=${encodeURIComponent(content)}`;
             }
 
-            // Fetch content with appropriate parameters
+            // Fetch content
             const response = await fetch(url);
             const data = await response.json();
             
@@ -408,8 +603,10 @@ export class Sidebar {
             contentContainer.innerHTML = data.content;
             document.title = page;
 
-            // Set background color based on content mode
-            if (isPersonalizationEnabled && hasCustomContent) {
+            // Set background color based on mode
+            if (isContributionsEnabled && hasContributions) {
+                document.body.style.backgroundColor = '#e6ffe6'; // light green for contributions
+            } else if (isPersonalizationEnabled && hasCustomContent) {
                 document.body.style.backgroundColor = '#fff3e6'; // light orange for personalization
             } else {
                 document.body.style.backgroundColor = '#ffffff'; // default
