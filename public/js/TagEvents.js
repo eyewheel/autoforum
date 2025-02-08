@@ -43,6 +43,12 @@ export class TagEvents {
             const selection = window.getSelection();
             const selectionText = selection.toString().trim();
             
+            // Check if we're in a non-default mode
+            if (window.contentVersion && (window.contentVersion.hasContributions || window.contentVersion.hasPersonalization)) {
+                this.tagRenderer.addTagButton.style.display = 'none';
+                return;
+            }
+            
             if (selection && !selection.isCollapsed && selectionText) {
                 const selectionInfo = this.getSelectionInfo(selection);
                 if (selectionInfo) {
@@ -111,6 +117,7 @@ export class TagEvents {
     }
 
     handleTagIconClick(event) {
+        console.log("Hello")
         const icon = event.target.closest('.selection-tag-icon');
         if (!icon) return;
 

@@ -56,6 +56,48 @@ app.get('/', async (req, res) => {
     }
 });
 
+// API endpoint to get just the content
+app.get('/api/content/:filename', async (req, res) => {
+    try {
+        const filename = req.params.filename;
+        const markdownPath = path.join(__dirname, 'content', `${filename}.md`);
+
+        paragraphCounter = 0; // Reset paragraph counter
+
+        let markdownContent = await fs.readFile(markdownPath, 'utf8');
+
+        // Get the raw markdown content
+        markdownContent = markdownContent.trim();
+
+        // If there's personalization and custom content, use it instead
+        if (req.query.personalization === '1' && req.query.customContent) {
+            markdownContent = decodeURIComponent(req.query.customContent);
+        }
+
+        // If the file uses the old format, extract the default section
+        if (markdownContent.includes('<!-- DEFAULT START -->')) {
+            const defaultSection = markdownContent.match(/<!-- DEFAULT START -->([\s\S]*?)<!-- DEFAULT END -->/);
+            if (defaultSection) {
+                markdownContent = defaultSection[1].trim();
+            }
+        }
+
+        const htmlContent = await parser.parse(markdownContent);
+
+        res.json({
+            content: htmlContent,
+            title: filename
+        });
+    } catch (error) {
+        if (error.code === 'ENOENT') {
+            res.status(404).json({ error: 'File not found' });
+        } else {
+            console.error('Error:', error);
+            res.status(500).json({ error: 'Server error' });
+        }
+    }
+});
+
 // API endpoint to list available pages
 app.get('/api/pages', async (req, res) => {
     try {
@@ -78,14 +120,41 @@ app.get('/:filename', async (req, res) => {
 
         paragraphCounter = 0; // Reset paragraph counter for each file
 
-        const markdownContent = await fs.readFile(markdownPath, 'utf8');
+        // Get the raw markdown content
+        let markdownContent = await fs.readFile(markdownPath, 'utf8');
+        markdownContent = markdownContent.trim();
+
+        // Get URL parameters
+        const url = new URL(req.url, `http://${req.headers.host}`);
+        const hasPersonalization = url.searchParams.has('personalization');
+        const customContent = url.searchParams.get('customContent');
+
+        // If personalization is enabled and custom content exists, use it instead
+        if (hasPersonalization && customContent) {
+            markdownContent = decodeURIComponent(customContent);
+        } else if (markdownContent.includes('<!-- DEFAULT START -->')) {
+            // If using old format, extract default section
+            const defaultSection = markdownContent.match(/<!-- DEFAULT START -->([\s\S]*?)<!-- DEFAULT END -->/);
+            if (defaultSection) {
+                markdownContent = defaultSection[1].trim();
+            }
+        }
+
         const htmlContent = await parser.parse(markdownContent);
-
         const template = await fs.readFile(path.join(__dirname, 'views', 'template.html'), 'utf8');
-
+        
+        // Inject content and version information into template
         const fullHtml = template
             .replace('{{title}}', filename)
-            .replace('{{content}}', htmlContent);
+            .replace('{{content}}', htmlContent)
+            .replace('</head>', `
+                <script>
+                    window.contentVersion = {
+                        hasPersonalization: ${hasPersonalization}
+                    };
+                </script>
+                </head>
+            `);
 
         res.send(fullHtml);
     } catch (error) {
@@ -109,7 +178,7 @@ app.post('/api/ask-openrouter', async (req, res) => {
     try {
         const { text } = await generateText({
             model: openrouter.chat('google/gemini-2.0-flash-001'),
-            prompt: prompt,
+        prompt: prompt,
         });
         res.json({ response: text });
     } catch (error) {

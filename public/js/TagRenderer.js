@@ -91,6 +91,20 @@ export class TagRenderer {
     }
 
     renderParagraph(paragraphId) {
+        // Check if we're in personalization mode
+        if (window.contentVersion && window.contentVersion.hasPersonalization) {
+            // Hide the tag sidebar
+            if (this.sidebarElement) {
+                this.sidebarElement.style.display = 'none';
+            }
+            return;
+        }
+
+        // Show the tag sidebar if it was hidden
+        if (this.sidebarElement) {
+            this.sidebarElement.style.display = 'block';
+        }
+
         const paragraph = document.getElementById(paragraphId);
         if (!paragraph || !paragraph.dataset.originalText) {
             console.error('Paragraph or original text not found:', paragraphId);
@@ -375,7 +389,7 @@ export class TagRenderer {
             // Check for any overlap in vertical space
             if (!(iconBottom < buttonTop || iconTop > buttonBottom)) {
                 icon.style.opacity = '0.5';
-                icon.style.transform = 'translateX(10px)';
+                icon.style.transform = 'translateX(15px)';
             }
         });
     }

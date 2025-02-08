@@ -13,9 +13,9 @@
     align-items: center;
     margin-left: 10px;
     position: absolute;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    box-shadow: 0 2px 3px rgba(0,0,0,0.3);
     cursor: pointer;
-    transition: transform 0.2s ease-out;
+    transition: transform 0.25s ease-out;
     z-index: 100;
 }
 
@@ -50,7 +50,7 @@
     z-index: 9999; /* Ensure menu is above everything */
     flex-direction: column;
     gap: 8px; /* Increased from 4px */
-    box-shadow: 0 4px 12px rgba(0,0,0,0.15); /* Enhanced shadow */
+    box-shadow: 0 4px 12px rgba(0,0,0,0.25); /* Enhanced shadow */
     min-width: 160px; /* Increased from 120px */
     transform: none !important; /* Prevent menu scaling */
 }

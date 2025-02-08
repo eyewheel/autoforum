@@ -59,6 +59,12 @@ export class TagManager {
     }
 
     addTag(paragraphId, selection, tagType) {
+        // Check if we're in a non-default mode
+        if (window.contentVersion && (window.contentVersion.hasContributions || window.contentVersion.hasPersonalization)) {
+            console.warn('Tags cannot be added in contribution or personalization modes');
+            return null;
+        }
+
         if (!selection || !tagType) {
             throw new Error('Missing required parameters for adding tag');
         }

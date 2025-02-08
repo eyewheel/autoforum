@@ -39,6 +39,33 @@
 .nav-sidebar-content {
     padding: 30px; /* Increased from 20px */
     padding-top: 60px; /* Increased from 50px */
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+}
+
+/* Toggle controls container */
+.toggle-controls {
+    margin-top: auto;
+    border-top: 1px solid #e9ecef;
+    padding: 15px;
+}
+
+.personalize-button {
+    width: 100%;
+    padding: 10px;
+    background-color: #007bff;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 1em;
+    margin-bottom: 15px;
+    transition: background-color 0.2s;
+}
+
+.personalize-button:hover {
+    background-color: #0056b3;
 }
 
 .nav-sidebar-content h2 {
@@ -152,6 +179,75 @@
     justify-content: center;
 }
 
+/* Toggle Switch */
+.toggle-container {
+    display: flex;
+    align-items: center;
+    margin: 15px 0;
+    padding: 0 15px;
+}
+
+.toggle-label {
+    flex-grow: 1;
+    color: #333;
+    margin-right: 10px;
+}
+
+.toggle-switch {
+    position: relative;
+    display: inline-block;
+    width: 50px;
+    height: 24px;
+}
+
+.toggle-switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.toggle-slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: #ccc;
+    transition: .4s, background-color .2s ease-in-out;
+    border-radius: 24px;
+}
+
+.toggle-slider:before {
+    position: absolute;
+    content: "";
+    height: 16px;
+    width: 16px;
+    left: 4px;
+    bottom: 4px;
+    background-color: white;
+    transition: .4s;
+    border-radius: 50%;
+}
+
+input:checked + .toggle-slider {
+    background-color: #007bff;
+}
+
+/* Darker gray toggle when locked */
+input:disabled + .toggle-slider {
+    background-color: #888; /* Darker gray color */
+    cursor: not-allowed; /* Indicate it's disabled */
+}
+
+input:disabled + .toggle-slider:before {
+    background-color: #ddd; /* Lighter gray for the knob */
+}
+
+input:checked + .toggle-slider:before {
+    transform: translateX(26px);
+}
+
 /* Overlay for click-outside behavior */
 .nav-sidebar-overlay {
     position: fixed;
@@ -169,4 +265,205 @@
 .nav-sidebar-overlay.visible {
     opacity: 1;
     visibility: visible;
+}
+
+/* Personalize Popup */
+.personalize-popup-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.5);
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.3s;
+    z-index: 1100;
+}
+
+.personalize-popup-overlay.visible {
+    opacity: 1;
+    visibility: visible;
+}
+
+.personalize-popup {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%) scale(0.95);
+    background-color: white;
+    padding: 30px;
+    border-radius: 8px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+    width: 90%;
+    max-width: 600px; /* Increased from 500px */
+    opacity: 0;
+    visibility: hidden;
+    transition: all 0.3s;
+    z-index: 1200;
+    max-height: 90vh; /* Prevent popup from exceeding viewport height */
+    display: flex;
+    flex-direction: column;
+}
+
+.personalize-popup.visible {
+    opacity: 1;
+    visibility: visible;
+    transform: translate(-50%, -50%) scale(1);
+}
+
+.personalize-popup h2 {
+    margin: 0 0 15px 0;
+    color: #333;
+    font-size: 1.5em;
+}
+
+.personalize-popup p {
+    color: #666;
+    margin-bottom: 20px;
+}
+
+.personalize-popup-close {
+    position: absolute;
+    right: 15px;
+    top: 15px;
+    background: none;
+    border: none;
+    font-size: 24px;
+    cursor: pointer;
+    color: #666;
+    padding: 5px;
+}
+
+.personalize-popup-close:hover {
+    color: #333;
+}
+
+/* Preset buttons */
+.preset-buttons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-bottom: 20px;
+}
+
+.preset-button {
+    padding: 8px 16px;
+    background-color: #e9ecef;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.9em;
+    color: #495057;
+    transition: all 0.2s;
+}
+
+.preset-button:hover {
+    background-color: #dee2e6;
+    color: #212529;
+}
+
+/* Form elements */
+.personalize-form {
+    display: flex;
+    gap: 10px;
+    width: 100%;
+}
+
+.personalize-input {
+    flex: 1;
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-family: -apple-system, system-ui, BlinkMacSystemFont,
+                "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    font-size: 1em;
+    transition: all 0.2s;
+    min-height: 6.5em; /* Approximately 4 lines of text */
+    max-height: 13em; /* Approximately 8 lines of text */
+    resize: none; /* Prevent manual resizing */
+    overflow-y: auto; /* Enable scrolling when content exceeds max-height */
+    line-height: 1.5; /* Improve readability */
+    display: block; /* Ensure proper sizing */
+    width: 100%; /* Take up full width of container */
+}
+
+.personalize-input:focus {
+    outline: none;
+    border-color: #007bff;
+    box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.1);
+}
+
+.personalize-input.error {
+    border-color: #dc3545;
+    box-shadow: 0 0 0 2px rgba(220, 53, 69, 0.1);
+}
+
+.personalize-submit {
+    padding: 10px 20px;
+    background-color: #007bff;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 1em;
+    transition: background-color 0.2s;
+    align-self: flex-start; /* Align with the top of the textarea */
+    white-space: nowrap; /* Prevent button text from wrapping */
+}
+
+.personalize-submit:hover {
+    background-color: #0056b3;
+}
+
+/* Loading State */
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+.personalize-loading {
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 200px;
+    gap: 20px;
+}
+
+.personalize-loading.visible {
+    display: flex;
+}
+
+.loading-spinner {
+    width: 50px;
+    height: 50px;
+    border: 4px solid #f3f3f3;
+    border-top: 4px solid #007bff;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+.loading-cancel {
+    padding: 10px 20px;
+    background-color: #dc3545;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 1em;
+    transition: background-color 0.2s;
+    position: absolute;
+    bottom: 30px;
+}
+
+.loading-cancel:hover {
+    background-color: #c82333;
+}
+
+.personalize-popup.loading .personalize-popup-close,
+.personalize-popup.loading .personalize-form,
+.personalize-popup.loading .preset-buttons,
+.personalize-popup.loading h2,
+.personalize-popup.loading p {
+    display: none;
 }
