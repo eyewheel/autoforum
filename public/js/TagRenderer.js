@@ -6,7 +6,7 @@ export class TagRenderer {
         this.sidebarElement = document.getElementById('tag-sidebar');
         this.addTagButton = this.createAddTagButton();
         this.tagMenu = this.createTagMenu();
-        
+
         if (!this.sidebarElement) {
             throw new Error('Tag sidebar element not found');
         }
@@ -29,12 +29,12 @@ export class TagRenderer {
         menu.style.position = 'absolute';
         menu.style.display = 'none';
         document.body.appendChild(menu);
-        
+
         // Create buttons container
         const buttonsContainer = document.createElement('div');
         buttonsContainer.className = 'tag-buttons-container';
         menu.appendChild(buttonsContainer);
-        
+
         // Add tag type buttons with enhanced info
         Object.entries(TAG_CONFIG).forEach(([type, config]) => {
             const button = document.createElement('button');
@@ -126,14 +126,14 @@ export class TagRenderer {
         const highlightClass = `tagged-${tag.tagType}-highlighted`;
         const style = `background-color: ${config.backgroundColor};`;
 
-        paragraph.innerHTML = `${beforeText}<span class="tagged-selection ${highlightClass}" 
+        paragraph.innerHTML = `${beforeText}<span class="tagged-selection ${highlightClass}"
             data-tag-id="${tag.id}" style="${style}">${selectedText}</span>${afterText}`;
     }
 
     renderTag(tag, paragraph) {
         // Create sidebar icon with enhanced styling
         const iconElement = this.createTagIcon(tag);
-        
+
         // Find the selection for this paragraph
         const selection = tag.selections.find(s => s.paragraphId === paragraph.id);
         if (selection) {
@@ -154,13 +154,13 @@ export class TagRenderer {
         icon.title = config.displayName;
         icon.dataset.tagId = tag.id;
         icon.style.color = config.color;
-        
+
         // Add custom text indicator if present
         if (tag.customText) {
             icon.classList.add('has-custom-text');
             icon.title += `: ${tag.customText}`;
         }
-        
+
         // Set paragraphIds for multi-paragraph tags
         icon.dataset.paragraphId = tag.selections.map(s => s.paragraphId).join(',');
 
@@ -278,7 +278,7 @@ export class TagRenderer {
 
     calculateElementPosition(selection, element) {
         let rects;
-        
+
         if (selection instanceof Selection) {
             const range = selection.getRangeAt(0);
             rects = range.getClientRects();
@@ -298,7 +298,7 @@ export class TagRenderer {
         const sidebarRect = this.sidebarElement.getBoundingClientRect();
         const elementHeight = 32; // Fixed height for consistency
         const position = (rects[0].top + rects[rects.length - 1].bottom) / 2 - (elementHeight / 2) - sidebarRect.top;
-        
+
         return position;
     }
 
@@ -314,7 +314,7 @@ export class TagRenderer {
 
         const position = this.calculateElementPosition(selection, this.addTagButton);
         if (position === null) return;
-        
+
         this.addTagButton.style.top = `${position}px`;
         this.addTagButton.style.display = 'flex';
 
@@ -325,7 +325,7 @@ export class TagRenderer {
         document.querySelectorAll('.selection-tag-icon:not(#add-tag-button)').forEach(icon => {
             icon.style.opacity = '1';
             icon.style.transform = 'translateX(0)';
-            
+
             const iconRect = icon.getBoundingClientRect();
             if (!(iconRect.bottom < buttonTop || iconRect.top > buttonBottom)) {
                 icon.style.opacity = '0.5';

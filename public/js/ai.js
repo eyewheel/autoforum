@@ -36,11 +36,11 @@ Important: Provide the personalized content in markdown format. Use regular mark
         if (response.ok && data.response) {
             // Log the raw AI response
             // console.log('Raw AI response:', data.response);
-            
+
             // Clean and format the markdown
             const formattedResponse = cleanAndFormatMarkdown(data.response);
             // console.log('Formatted markdown response:', formattedResponse);
-            
+
             return formattedResponse;
         } else {
             throw new Error(data.error || 'Failed to get AI response');
@@ -64,7 +64,7 @@ export async function contributeContent(taggedParagraphs) {
     const fullText = contentContainer.innerText;
 
     // Construct the prompt
-    const prompt = `You are an expert in content improvement. Your task is to improve specific paragraphs while maintaining the core meaning and educational value.
+    const prompt = `You are an expert in content improvement. Your task is to improve specific paragraphs in a Markdown document without altering the rest of the document.
 
 Content to improve:
 ${fullText}
@@ -78,18 +78,10 @@ Tags: ${p.tags.map(tag => `
   - Selections: ${tag.selections.map(s => `"${s.text}"`).join(', ')}`).join('\n')}
 `).join('\n')}
 
-Important: Provide the improved content in markdown format:
-1. Use # for the main title (e.g., "# Understanding Data Structures")
-2. Use ## for section headers (e.g., "## Arrays and Lists")
-3. Use regular paragraphs for content
-4. Use markdown list syntax with - for bullet points
-5. Do not use code blocks or special formatting
-6. Keep the exact same structure and headers as the original
-
-Return the complete content with your improvements, making sure to:
-- Preserve the core meaning of tagged sections
-- Maintain proper markdown formatting with # and ## for headers
-- Keep the same document structure`;
+Return the original document with only the tagged paragraphs revised, taking into consideration the users' tags., and retaining the Markdown format, as your response will be
+directly inserted into the article.
+Do not edit any paragraphs that are not in the list of "paragraphs that need improvement", even if changes seem obvious, but feel free to edit the paragraphs in that list
+extensively in order to fulfill the user wishes as expressed in the tags. Make sure not to ignore any tagged paragraphs`;
 
     try {
         const response = await fetch('/api/ask-openrouter', {
@@ -105,11 +97,11 @@ Return the complete content with your improvements, making sure to:
         if (response.ok && data.response) {
             // Log the raw AI response
             // console.log('Raw AI contribution response:', data.response);
-            
+
             // Clean and format the markdown
             const formattedResponse = cleanAndFormatMarkdown(data.response);
             // console.log('Formatted markdown contribution:', formattedResponse);
-            
+
             return formattedResponse;
         } else {
             throw new Error(data.error || 'Failed to get AI response');
