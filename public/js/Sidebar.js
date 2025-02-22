@@ -5,7 +5,7 @@ import { contributeContent } from './ai.js';
 export class Sidebar {
     constructor() {
         this.isOpen = false;
-        
+
         // Initialize content and state storage
         this.CUSTOM_CONTENT_KEY = 'custom_content';
         this.CONTRIBUTIONS_KEY = 'contributions_content';
@@ -13,10 +13,10 @@ export class Sidebar {
         this.customContent = this.loadCustomContent();
         this.contributionsContent = this.loadContributions();
         this.state = this.loadState();
-        
+
         // Initialize sidebar
         this.initialize();
-        
+
         // Expose sidebar instance globally
         window.sidebarInstance = this;
     }
@@ -54,19 +54,19 @@ export class Sidebar {
         try {
             this.contributionsContent[page] = content;
             localStorage.setItem(this.CONTRIBUTIONS_KEY, JSON.stringify(this.contributionsContent));
-            
+
             if (this.contributionsInput) {
                 this.contributionsInput.disabled = false;
                 this.contributionsInput.checked = true;
-                
+
                 // Set global state
                 window.contentVersion = {
                     hasContributions: true
                 };
-                
+
                 // Save state to localStorage
                 this.saveState();
-                
+
                 // Force a content update
                 setTimeout(() => {
                     this.updateContent();
@@ -109,20 +109,20 @@ export class Sidebar {
         try {
             this.customContent[page] = content;
             localStorage.setItem(this.CUSTOM_CONTENT_KEY, JSON.stringify(this.customContent));
-            
+
             // Update personalization state
             if (this.personalizationInput) {
                 this.personalizationInput.disabled = false;
                 this.personalizationInput.checked = true;
-                
+
                 // Set global state
                 window.contentVersion = {
                     hasPersonalization: true
                 };
-                
+
                 // Save state to localStorage
                 this.saveState();
-                
+
                 // Force a content update with a small delay to ensure state is saved
                 setTimeout(() => {
                     this.updateContent();
@@ -155,14 +155,14 @@ export class Sidebar {
         // Create sidebar elements
         const sidebar = document.createElement('div');
         sidebar.className = 'nav-sidebar';
-        
+
         const closeButton = document.createElement('button');
         closeButton.className = 'nav-sidebar-close';
         closeButton.innerHTML = '×';
-        
+
         const content = document.createElement('div');
         content.className = 'nav-sidebar-content';
-        
+
         const title = document.createElement('h2');
         title.textContent = 'Navigation';
 
@@ -194,11 +194,11 @@ export class Sidebar {
         personalizationToggle.className = 'toggle-switch';
         const personalizationInput = document.createElement('input');
         personalizationInput.type = 'checkbox';
-        
+
         // Check if custom content exists for current page
         const pathname = window.location.pathname;
         const page = pathname === '/' ? 'index' : pathname.substring(1);
-        
+
         // Set initial toggle state
         if (this.hasCustomContent(page)) {
             personalizationInput.disabled = false;
@@ -207,7 +207,7 @@ export class Sidebar {
             personalizationInput.disabled = true;
             personalizationInput.checked = false;
         }
-        
+
         // Set initial contributions toggle state
         if (this.hasContributions(page)) {
             contributionsInput.disabled = false;
@@ -232,7 +232,7 @@ export class Sidebar {
             hasPersonalization: personalizationInput.checked && !personalizationInput.disabled,
             hasContributions: contributionsInput.checked && !contributionsInput.disabled
         };
-        
+
         const personalizationSlider = document.createElement('span');
         personalizationSlider.className = 'toggle-slider';
         personalizationToggle.appendChild(personalizationInput);
@@ -248,10 +248,10 @@ export class Sidebar {
             };
             this.updateContent();
         });
-        
+
         const navList = document.createElement('ul');
         navList.className = 'nav-sidebar-links';
-        
+
         // Create toggle button
         const toggleButton = document.createElement('button');
         toggleButton.className = 'nav-sidebar-toggle';
@@ -260,7 +260,7 @@ export class Sidebar {
         // Create overlay for click-outside
         const overlay = document.createElement('div');
         overlay.className = 'nav-sidebar-overlay';
-        
+
         // Create toggle controls container
         const toggleControls = document.createElement('div');
         toggleControls.className = 'toggle-controls';
@@ -293,12 +293,12 @@ export class Sidebar {
         content.appendChild(toggleControls);
         sidebar.appendChild(closeButton);
         sidebar.appendChild(content);
-        
+
         // Add to document
         document.body.appendChild(sidebar);
         document.body.appendChild(toggleButton);
         document.body.appendChild(overlay);
-        
+
         // Store references
         this.sidebar = sidebar;
         this.navList = navList;
@@ -327,7 +327,7 @@ export class Sidebar {
         // Try to get tags from localStorage
         const storageKey = `${CONSTANTS.STORAGE_KEY}_${page}`;
         let count = 0;
-        
+
         try {
             const storedTags = localStorage.getItem(storageKey);
             if (storedTags) {
@@ -340,7 +340,7 @@ export class Sidebar {
         } catch (error) {
             console.error('Error getting tag count:', error);
         }
-        
+
         return count;
     }
 
@@ -352,7 +352,7 @@ export class Sidebar {
             // Get list of markdown files
             const response = await fetch('/api/pages');
             const pages = await response.json();
-            
+
             // Add links for each page
             pages.forEach(page => {
                 const tagCount = this.getTagCount(page);
@@ -368,12 +368,12 @@ export class Sidebar {
         const li = document.createElement('li');
         const a = document.createElement('a');
         a.href = href;
-        
+
         // Add page name
         const pageName = document.createElement('span');
         pageName.textContent = text;
         a.appendChild(pageName);
-        
+
         // Add tag count if not home page
         if (href !== '/') {
             const count = document.createElement('span');
@@ -381,29 +381,29 @@ export class Sidebar {
             count.textContent = tagCount;
             a.appendChild(count);
         }
-        
+
         // Mark active page and handle personalization
         if (window.location.pathname === href) {
             a.classList.add('active');
-            
+
             // Update personalization toggle state for the new page
             const page = href === '/' ? 'index' : href.substring(1);
             if (this.personalizationInput) {
                 const hasCustomContent = this.hasCustomContent(page);
                 this.personalizationInput.disabled = !hasCustomContent;
                 this.personalizationInput.checked = hasCustomContent && this.state.personalization;
-                
+
                 // Update global state and trigger content update if needed
                 window.contentVersion = {
                     hasPersonalization: this.personalizationInput.checked && !this.personalizationInput.disabled
                 };
-                
+
                 if (this.personalizationInput.checked && hasCustomContent) {
                     setTimeout(() => this.updateContent(), 50);
                 }
             }
         }
-        
+
         li.appendChild(a);
         this.navList.appendChild(li);
     }
@@ -458,39 +458,40 @@ export class Sidebar {
         // Create overlay if it doesn't exist
         let overlay = document.querySelector('.contribute-overlay');
         let cancelButton = document.querySelector('.contribute-cancel');
-        
+
         if (!overlay) {
             overlay = document.createElement('div');
             overlay.className = 'contribute-overlay';
-            
+
             cancelButton = document.createElement('button');
             cancelButton.className = 'contribute-cancel';
             cancelButton.textContent = '×';
             cancelButton.addEventListener('click', () => {
                 overlay.classList.remove('visible');
             });
-            
+
             overlay.appendChild(cancelButton);
             document.body.appendChild(overlay);
         }
 
         // Show overlay
         overlay.classList.add('visible');
-        
+
         // Get all paragraphs with tags
         const taggedParagraphs = new Map();
         const paragraphs = document.querySelectorAll('.paragraph');
-        
+
         paragraphs.forEach(paragraph => {
             const paragraphId = paragraph.id;
             // console.log(paragraphId);
             const tags = window.tagManager.getTagsForParagraph(paragraphId);
-            
+
             if (tags && tags.length > 0) {
                 taggedParagraphs.set(paragraphId, {
                     text: paragraph.dataset.originalText || paragraph.textContent,
                     tags: tags.map(tag => ({
                         type: tag.tagType,
+                        customText: tag.customText,
                         selections: tag.selections.filter(s => s.paragraphId === paragraphId)
                             .map(s => ({
                                 text: s.selectedText,
@@ -513,21 +514,21 @@ try {
     const loadingSpinner = document.createElement('div');
     loadingSpinner.className = 'loading-spinner';
     overlay.appendChild(loadingSpinner);
-    
+
     // Send to LLM and get response
     const response = await contributeContent(taggedParagraphs);
-    
+
     // Get current page path
     const pathname = window.location.pathname;
     const page = pathname === '/' ? 'index' : pathname.substring(1);
-    
+
     // Save as a contribution
     this.saveContributions(page, response);
-    
+
     // Clean up
     overlay.classList.remove('visible');
     loadingSpinner.remove();
-    
+
     // Update the contributions toggle
     if (this.contributionsInput) {
         this.contributionsInput.disabled = false;
@@ -538,10 +539,10 @@ try {
         };
         this.saveState();
     }
-    
+
     // Close the sidebar
     this.close();
-    
+
 } catch (error) {
     console.error('Error during contribution:', error);
     alert('An error occurred while processing your contribution. Please try again.');
@@ -572,33 +573,33 @@ try {
         try {
             let url = `/api/content/${page}`;
             let content = null;
-            
+
             // Determine which content to show
             if (isContributionsEnabled && hasContributions) {
                 content = this.getContributions(page);
                 // console.log('Raw contributions content:', content);
-                
+
                 // Ensure proper markdown formatting by adding double line breaks
                 content = content.replace(/\n/g, '\n\n');
                 // console.log('Formatted contributions content:', content);
-                
+
                 url += `?contributions=1&customContent=${encodeURIComponent(content)}`;
                 // console.log('Request URL:', url);
             } else if (isPersonalizationEnabled && hasCustomContent) {
                 content = this.getCustomContent(page);
                 // console.log('Raw personalization content:', content);
-                
+
                 // Add same line break formatting for consistency
                 content = content.replace(/\n/g, '\n\n');
                 // console.log('Formatted personalization content:', content);
-                
+
                 url += `?personalization=1&customContent=${encodeURIComponent(content)}`;
             }
 
             // Fetch content
             const response = await fetch(url);
             const data = await response.json();
-            
+
             // Update content
             contentContainer.innerHTML = data.content;
             document.title = page;

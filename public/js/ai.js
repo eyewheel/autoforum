@@ -83,10 +83,10 @@ Tags: ${p.tags.map(tag => `
 Return the original document with only the tagged paragraphs revised, taking into consideration the users' tags., and retaining the Markdown format, as your response will be
 directly inserted into the article.
 Do not edit any paragraphs that are not in the list of "paragraphs that need improvement", even if changes seem obvious, but feel free to edit the paragraphs in that list
-extensively in order to fulfill the user wishes as expressed in the tags. Make sure not to ignore any tagged paragraphs`;
+extensively in order to fulfill the user wishes as expressed in the tags. fMake sure not to ignore any tagged paragraphs`;
 
     console.log(prompt);
-    console.log(paragraphsArray);
+    // console.log(paragraphsArray);
 
     try {
         const response = await fetch('/api/ask-openrouter', {
