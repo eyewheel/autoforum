@@ -12,7 +12,7 @@ export class TagManager {
         try {
             const storageKey = CONSTANTS.STORAGE_KEY + '_' + this.getCurrentPage();
             const stored = localStorage.getItem(storageKey);
-            
+
             if (stored) {
                 // If tags exist in localStorage, use them
                 const parsed = JSON.parse(stored);
@@ -23,7 +23,7 @@ export class TagManager {
                 // If no tags in localStorage, check for default tags
                 const currentPage = this.getCurrentPage();
                 const defaultTags = DEFAULT_TAGS[currentPage];
-                
+
                 if (defaultTags) {
                     // Load default tags if they exist
                     Object.entries(defaultTags).forEach(([paragraphId, tags]) => {
@@ -33,7 +33,7 @@ export class TagManager {
                     this.saveToStorage();
                 }
             }
-            
+
             // Find highest existing tag ID to set counter
             this.tagCounter = this.getHighestTagId() + 1;
         } catch (error) {
@@ -58,7 +58,7 @@ export class TagManager {
         }
     }
 
-    addTag(paragraphId, selection, tagType) {
+    addTag(paragraphId, selection, tagType, text) {
         // Check if we're in a non-default mode
         if (window.contentVersion && (window.contentVersion.hasContributions || window.contentVersion.hasPersonalization)) {
             console.warn('Tags cannot be added in contribution or personalization modes');
@@ -73,7 +73,8 @@ export class TagManager {
         const newTag = {
             id: tagId,
             tagType,
-            selections: Array.isArray(selection) ? selection : [selection]
+            selections: Array.isArray(selection) ? selection : [selection],
+            customText: text
         };
 
         // Add tag reference to each involved paragraph
@@ -137,7 +138,7 @@ export class TagManager {
     }
 
     getTagsForParagraph(paragraphId) {
-        return [...(this.tags.get(paragraphId) || [])].sort((a, b) => 
+        return [...(this.tags.get(paragraphId) || [])].sort((a, b) =>
             a.startOffset - b.startOffset
         );
     }

@@ -48,7 +48,7 @@ export class TagEvents {
         }
 
         // Hide menus if clicking outside them and their buttons
-        if (!event.target.closest('.tag-management-menu') && 
+        if (!event.target.closest('.tag-management-menu') &&
             !event.target.closest('.selection-tag-icon')) {
             document.querySelectorAll('.tag-management-menu').forEach(menu => {
                 menu.style.display = 'none';
@@ -58,13 +58,13 @@ export class TagEvents {
         setTimeout(() => {
             const selection = window.getSelection();
             const selectionText = selection.toString().trim();
-            
+
             // Check if we're in a non-default mode
             if (window.contentVersion && (window.contentVersion.hasContributions || window.contentVersion.hasPersonalization)) {
                 this.tagRenderer.addTagButton.style.display = 'none';
                 return;
             }
-            
+
             if (selection && !selection.isCollapsed && selectionText) {
                 const selectionInfo = this.getSelectionInfo(selection);
                 if (selectionInfo) {
@@ -82,8 +82,8 @@ export class TagEvents {
     }
 
     handleMouseDown(event) {
-        if (!event.target.closest('.paragraph') && 
-            !event.target.closest('#tag-sidebar') && 
+        if (!event.target.closest('.paragraph') &&
+            !event.target.closest('#tag-sidebar') &&
             !event.target.closest('.tag-management-menu')) {
             this.hideAllMenus();
             window.getSelection().removeAllRanges();
@@ -99,7 +99,7 @@ export class TagEvents {
     handleAddTagButtonClick(event) {
         event.preventDefault();
         event.stopPropagation();
-        
+
         if (this.currentSelection) {
             this.handleTagIconClick(event);
         }
@@ -115,23 +115,24 @@ export class TagEvents {
             const menu = event.target.closest('.tag-management-menu');
             const inputContainer = menu.querySelector('.tag-input-container');
             const input = menu.querySelector('.tag-input');
-            
+
             // Show input container
             inputContainer.style.display = 'flex';
             input.focus();
-            
+
             // Handle submit button click
             const submitButton = menu.querySelector('.tag-submit');
             const handleSubmit = () => {
                 const customText = input.value.trim();
                 if (customText) {
-                    this.createTag(tagType, customText);
+                    var tag = this.createTag(tagType, customText);
+                    console.log(tag);
                     input.value = '';
                     inputContainer.style.display = 'none';
                     this.hideAllMenus();
                 }
             };
-            
+
             submitButton.onclick = handleSubmit;
             return;
         }
@@ -156,6 +157,7 @@ export class TagEvents {
 
         this.hideAllMenus();
         window.getSelection().removeAllRanges();
+        return tag;
     }
 
     handleTagIconClick(event) {
@@ -178,11 +180,11 @@ export class TagEvents {
             document.querySelectorAll('.tag-management-menu').forEach(m => {
                 if (m !== menu) m.style.display = 'none';
             });
-            
+
             // Toggle current menu
             const isVisible = menu.style.display === 'flex';
             menu.style.display = isVisible ? 'none' : 'flex';
-            
+
             if (!isVisible) {
                 // Show/hide input container based on icon type
                 const inputContainer = menu.querySelector('.tag-input-container');
@@ -211,45 +213,45 @@ export class TagEvents {
 
     getSelectionInfo(selection) {
         if (!selection || selection.isCollapsed) return null;
-    
+
         const range = selection.getRangeAt(0);
-        const startParagraph = range.startContainer.nodeType === Node.TEXT_NODE ? 
+        const startParagraph = range.startContainer.nodeType === Node.TEXT_NODE ?
             range.startContainer.parentElement.closest('.paragraph') :
             range.startContainer.closest('.paragraph');
-            
+
         const endParagraph = range.endContainer.nodeType === Node.TEXT_NODE ?
             range.endContainer.parentElement.closest('.paragraph') :
             range.endContainer.closest('.paragraph');
-    
+
         if (!startParagraph || !endParagraph) return null;
-    
+
         const selections = [];
         let currentParagraph = startParagraph;
-    
+
         while (currentParagraph) {
             const paragraphId = currentParagraph.id;
             if (!currentParagraph.dataset.originalText) {
                 currentParagraph.dataset.originalText = currentParagraph.textContent;
             }
-    
+
             const paragraphText = currentParagraph.dataset.originalText;
-            const startOffset = currentParagraph === startParagraph ? 
+            const startOffset = currentParagraph === startParagraph ?
                 this.getTextOffset(startParagraph, range.startContainer, range.startOffset) : 0;
             const endOffset = currentParagraph === endParagraph ?
-                this.getTextOffset(endParagraph, range.endContainer, range.endOffset) : 
+                this.getTextOffset(endParagraph, range.endContainer, range.endOffset) :
                 paragraphText.length;
-    
+
             selections.push({
                 paragraphId,
                 startOffset,
                 endOffset,
                 selectedText: paragraphText.substring(startOffset, endOffset)
             });
-    
+
             if (currentParagraph === endParagraph) break;
             currentParagraph = currentParagraph.nextElementSibling?.closest('.paragraph');
         }
-    
+
         return { selections };
     }
 

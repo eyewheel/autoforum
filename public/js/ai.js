@@ -63,6 +63,7 @@ export async function contributeContent(taggedParagraphs) {
     const contentContainer = document.getElementById('content');
     const fullText = contentContainer.innerText;
 
+    // tag.customText
     // Construct the prompt
     const prompt = `You are an expert in content improvement. Your task is to improve specific paragraphs in a Markdown document without altering the rest of the document.
 
@@ -74,7 +75,8 @@ ${paragraphsArray.map(p => `
 Paragraph ${p.id}:
 Text: ${p.text}
 Tags: ${p.tags.map(tag => `
-  - Type: ${tag.type}
+  - Type: ${tag.type}${tag.customText ? `
+  - Custom Note: "${tag.customText}"` : ''}
   - Selections: ${tag.selections.map(s => `"${s.text}"`).join(', ')}`).join('\n')}
 `).join('\n')}
 
@@ -82,6 +84,9 @@ Return the original document with only the tagged paragraphs revised, taking int
 directly inserted into the article.
 Do not edit any paragraphs that are not in the list of "paragraphs that need improvement", even if changes seem obvious, but feel free to edit the paragraphs in that list
 extensively in order to fulfill the user wishes as expressed in the tags. Make sure not to ignore any tagged paragraphs`;
+
+    console.log(prompt);
+    console.log(paragraphsArray);
 
     try {
         const response = await fetch('/api/ask-openrouter', {
