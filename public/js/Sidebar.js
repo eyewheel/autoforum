@@ -1,6 +1,7 @@
 import { DEFAULT_TAGS } from './defaultTags.js';
 import { CONSTANTS } from './constants.js';
-import { contributeContent } from './ai.js';
+import { personalizeContent } from './ai.js';
+import { ContributionProcessor } from './ContributionProcessor.js';
 
 export class Sidebar {
     constructor() {
@@ -332,10 +333,22 @@ export class Sidebar {
             const storedTags = localStorage.getItem(storageKey);
             if (storedTags) {
                 const tags = JSON.parse(storedTags);
-                count = Object.values(tags).reduce((acc, pageTags) => acc + pageTags.length, 0);
+                if (Array.isArray(tags)) {
+                    // New format - array of tags
+                    count = tags.length;
+                } else {
+                    // Old format - object with paragraph IDs as keys
+                    count = Object.values(tags).reduce((acc, pageTags) => acc + pageTags.length, 0);
+                }
             } else if (DEFAULT_TAGS[page]) {
                 // If no localStorage but we have default tags
-                count = Object.values(DEFAULT_TAGS[page]).reduce((acc, pageTags) => acc + pageTags.length, 0);
+                if (Array.isArray(DEFAULT_TAGS[page])) {
+                    // New format
+                    count = DEFAULT_TAGS[page].length;
+                } else {
+                    // Old format
+                    count = Object.values(DEFAULT_TAGS[page]).reduce((acc, pageTags) => acc + pageTags.length, 0);
+                }
             }
         } catch (error) {
             console.error('Error getting tag count:', error);
@@ -465,6 +478,9 @@ export class Sidebar {
 
             cancelButton = document.createElement('button');
             cancelButton.className = 'contribute-cancel';
+            cancelButton.style.display = 'flex';
+            cancelButton.style.justifyContent = 'center';
+            cancelButton.style.alignItems = 'center';
             cancelButton.textContent = '×';
             cancelButton.addEventListener('click', () => {
                 overlay.classList.remove('visible');
@@ -477,78 +493,59 @@ export class Sidebar {
         // Show overlay
         overlay.classList.add('visible');
 
-        // Get all paragraphs with tags
-        const taggedParagraphs = new Map();
-        const paragraphs = document.querySelectorAll('.paragraph');
-
-        paragraphs.forEach(paragraph => {
-            const paragraphId = paragraph.id;
-            // console.log(paragraphId);
-            const tags = window.tagManager.getTagsForParagraph(paragraphId);
-
-            if (tags && tags.length > 0) {
-                taggedParagraphs.set(paragraphId, {
-                    text: paragraph.dataset.originalText || paragraph.textContent,
-                    tags: tags.map(tag => ({
-                        type: tag.tagType,
-                        customText: tag.customText,
-                        selections: tag.selections.filter(s => s.paragraphId === paragraphId)
-                            .map(s => ({
-                                text: s.selectedText,
-                                startOffset: s.startOffset,
-                                endOffset: s.endOffset
-                            }))
-                    }))
-                });
+        try {
+            // Check if a loading spinner already exists
+            let loadingSpinner = overlay.querySelector('.loading-spinner');
+            
+            // Only create a new loading spinner if one doesn't exist
+            if (!loadingSpinner) {
+                loadingSpinner = document.createElement('div');
+                loadingSpinner.className = 'loading-spinner';
+                overlay.appendChild(loadingSpinner);
             }
-        });
 
-        // If no tagged paragraphs, show message and return
-        if (taggedParagraphs.size === 0) {
-            alert('No tagged paragraphs found. Please add tags to contribute.');
+            // Create and use the new ContributionProcessor
+            const processor = new ContributionProcessor(window.tagManager);
+            const result = await processor.contribute();
+
+            // Get current page path
+            const pathname = window.location.pathname;
+            const page = pathname === '/' ? 'index' : pathname.substring(1);
+
+            // Save the contribution
+            this.saveContributions(page, result);
+
+            // Clean up
             overlay.classList.remove('visible');
-            return;
+            if (loadingSpinner) {
+                loadingSpinner.remove();
+            }
+
+            // Update the contributions toggle
+            if (this.contributionsInput) {
+                this.contributionsInput.disabled = false;
+                this.contributionsInput.checked = true;
+                window.contentVersion = {
+                    hasContributions: true,
+                    hasPersonalization: false
+                };
+                this.saveState();
+            }
+
+            // Close the sidebar
+            this.close();
+
+        } catch (error) {
+            console.error('Error during contribution:', error);
+            alert('An error occurred while processing your contribution. Please try again.');
+            overlay.classList.remove('visible');
+            
+            // Remove loading spinner if it exists
+            const loadingSpinner = overlay.querySelector('.loading-spinner');
+            if (loadingSpinner) {
+                loadingSpinner.remove();
+            }
         }
-try {
-    // Add loading indicator
-    const loadingSpinner = document.createElement('div');
-    loadingSpinner.className = 'loading-spinner';
-    overlay.appendChild(loadingSpinner);
-
-    // Send to LLM and get response
-    const response = await contributeContent(taggedParagraphs);
-
-    // Get current page path
-    const pathname = window.location.pathname;
-    const page = pathname === '/' ? 'index' : pathname.substring(1);
-
-    // Save as a contribution
-    this.saveContributions(page, response);
-
-    // Clean up
-    overlay.classList.remove('visible');
-    loadingSpinner.remove();
-
-    // Update the contributions toggle
-    if (this.contributionsInput) {
-        this.contributionsInput.disabled = false;
-        this.contributionsInput.checked = true;
-        window.contentVersion = {
-            hasContributions: true,
-            hasPersonalization: false
-        };
-        this.saveState();
-    }
-
-    // Close the sidebar
-    this.close();
-
-} catch (error) {
-    console.error('Error during contribution:', error);
-    alert('An error occurred while processing your contribution. Please try again.');
-    overlay.classList.remove('visible');
-}
-        // console.log('Tagged paragraphs:', taggedParagraphs);
     }
 
     async updateContent() {
@@ -578,27 +575,20 @@ try {
         try {
             let url = `/api/content/${page}`;
             let content = null;
+            let contentType = 'default';
 
             // Determine which content to show
             if (isContributionsEnabled && hasContributions) {
                 content = this.getContributions(page);
-                // console.log('Raw contributions content:', content);
-
-                // Ensure proper markdown formatting by adding double line breaks
-                content = content.replace(/\n/g, '\n\n');
-                // console.log('Formatted contributions content:', content);
-
-                url += `?contributions=1&customContent=${encodeURIComponent(content)}`;
-                // console.log('Request URL:', url);
+                contentType = 'markdown';
+                // The content is already properly formatted markdown from ContributionProcessor
+                url += `?contributions=1&contentType=${contentType}&customContent=${encodeURIComponent(content)}`;
             } else if (isPersonalizationEnabled && hasCustomContent) {
                 content = this.getCustomContent(page);
-                // console.log('Raw personalization content:', content);
-
-                // Add same line break formatting for consistency
+                contentType = 'markdown';
+                // Add line break formatting for consistency with personalized content
                 content = content.replace(/\n/g, '\n\n');
-                // console.log('Formatted personalization content:', content);
-
-                url += `?personalization=1&customContent=${encodeURIComponent(content)}`;
+                url += `?personalization=1&contentType=${contentType}&customContent=${encodeURIComponent(content)}`;
             }
 
             // Fetch content
