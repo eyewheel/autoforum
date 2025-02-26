@@ -4,7 +4,8 @@ import { TAG_CONFIG } from './constants.js';
 
 export class TagManager {
     constructor() {
-        this.tags = new Map(); // paragraphId -> Tag[]
+        this.tags = new Map(); // paragraphId -> Tag[] (for efficient lookups during rendering)
+        this.allTags = []; // Primary storage - array of all tags
         this.tagCounter = 0;
         this.loadFromStorage();
     }
@@ -17,20 +18,54 @@ export class TagManager {
             if (stored) {
                 // If tags exist in localStorage, use them
                 const parsed = JSON.parse(stored);
-                Object.entries(parsed).forEach(([paragraphId, tags]) => {
-                    this.tags.set(paragraphId, tags);
-                });
+                
+                // Check if we're using the new storage format
+                if (Array.isArray(parsed)) {
+                    // New format - direct tag storage
+                    this.allTags = parsed;
+                } else {
+                    // Old format - convert from paragraph-based to direct tag storage
+                    console.log("Converting from old storage format...");
+                    const uniqueTags = new Map();
+                    
+                    // Extract unique tags from paragraph-based storage
+                    Object.entries(parsed).forEach(([paragraphId, tags]) => {
+                        tags.forEach(tag => {
+                            if (!uniqueTags.has(tag.id)) {
+                                uniqueTags.set(tag.id, tag);
+                            }
+                        });
+                    });
+                    
+                    this.allTags = Array.from(uniqueTags.values());
+                }
+
+                // Build the paragraph -> tags lookup map
+                this.rebuildTagsMap();
             } else {
                 // If no tags in localStorage, check for default tags
                 const currentPage = this.getCurrentPage();
                 const defaultTags = DEFAULT_TAGS[currentPage];
 
                 if (defaultTags) {
-                    // Load default tags if they exist
+                    // Convert default tags from old format if needed
+                    const uniqueTags = new Map();
+                    
+                    // Extract unique tags
                     Object.entries(defaultTags).forEach(([paragraphId, tags]) => {
-                        this.tags.set(paragraphId, tags);
+                        tags.forEach(tag => {
+                            if (!uniqueTags.has(tag.id)) {
+                                uniqueTags.set(tag.id, tag);
+                            }
+                        });
                     });
-                    // Save default tags to localStorage
+                    
+                    this.allTags = Array.from(uniqueTags.values());
+                    
+                    // Build the paragraph -> tags lookup map
+                    this.rebuildTagsMap();
+                    
+                    // Save to storage in new format
                     this.saveToStorage();
                 }
             }
@@ -40,7 +75,23 @@ export class TagManager {
         } catch (error) {
             console.error('Error loading tags from storage:', error);
             this.tags.clear();
+            this.allTags = [];
         }
+    }
+
+    // Helper method to rebuild the paragraph -> tags map
+    rebuildTagsMap() {
+        this.tags.clear();
+        
+        this.allTags.forEach(tag => {
+            tag.selections.forEach(selection => {
+                const paragraphId = selection.paragraphId;
+                if (!this.tags.has(paragraphId)) {
+                    this.tags.set(paragraphId, []);
+                }
+                this.tags.get(paragraphId).push(tag);
+            });
+        });
     }
 
     getCurrentPage() {
@@ -52,8 +103,8 @@ export class TagManager {
     saveToStorage() {
         try {
             const storageKey = CONSTANTS.STORAGE_KEY + '_' + this.getCurrentPage();
-            const toSave = Object.fromEntries(this.tags);
-            localStorage.setItem(storageKey, JSON.stringify(toSave));
+            // Store tags directly in an array
+            localStorage.setItem(storageKey, JSON.stringify(this.allTags));
         } catch (error) {
             console.error('Error saving tags to storage:', error);
         }
@@ -78,7 +129,10 @@ export class TagManager {
             customText: text
         };
 
-        // Add tag reference to each involved paragraph
+        // Add to primary storage
+        this.allTags.push(newTag);
+
+        // Add tag reference to each involved paragraph for quick lookup
         newTag.selections.forEach(sel => {
             if (!this.tags.has(sel.paragraphId)) {
                 this.tags.set(sel.paragraphId, []);
@@ -91,57 +145,70 @@ export class TagManager {
     }
 
     deleteTag(tagId) {
-        let deleted = false;
-        this.tags.forEach((tags, paragraphId) => {
-            const filteredTags = tags.filter(tag => tag.id !== tagId);
-            if (filteredTags.length !== tags.length) {
-                if (filteredTags.length === 0) {
+        // Find the tag index in the allTags array
+        const tagIndex = this.allTags.findIndex(tag => tag.id === tagId);
+        if (tagIndex === -1) {
+            return false;
+        }
+        
+        // Get the tag to determine which paragraphs need updating
+        const tag = this.allTags[tagIndex];
+        const affectedParagraphs = tag.selections.map(s => s.paragraphId);
+        
+        // Remove the tag from allTags
+        this.allTags.splice(tagIndex, 1);
+        
+        // Update the paragraph -> tags map
+        affectedParagraphs.forEach(paragraphId => {
+            if (this.tags.has(paragraphId)) {
+                const paragraphTags = this.tags.get(paragraphId).filter(t => t.id !== tagId);
+                if (paragraphTags.length === 0) {
                     this.tags.delete(paragraphId);
                 } else {
-                    this.tags.set(paragraphId, filteredTags);
+                    this.tags.set(paragraphId, paragraphTags);
                 }
-                deleted = true;
             }
         });
-
-        if (deleted) {
-            this.saveToStorage();
-        }
-        return deleted;
+        
+        this.saveToStorage();
+        return true;
     }
 
     updateTagType(tagId, newType) {
-        let updated = false;
-        this.tags.forEach((tags) => {
-            const tag = tags.find(t => t.id === tagId);
-            if (tag) {
-                tag.tagType = newType;
-                updated = true;
-            }
-        });
-
-        if (updated) {
+        // Find the tag in the allTags array
+        const tag = this.allTags.find(t => t.id === tagId);
+        if (tag) {
+            tag.tagType = newType;
             this.saveToStorage();
+            return true;
         }
-        return updated;
+        return false;
+    }
+
+    updateTag(tagId, newType, customText) {
+        // Find the tag in the allTags array
+        const tag = this.allTags.find(t => t.id === tagId);
+        if (tag) {
+            tag.tagType = newType;
+            tag.customText = customText;
+            this.saveToStorage();
+            return true;
+        }
+        return false;
     }
 
     getMultiParagraphTags() {
-        const multiParagraphTags = new Set();
-        this.tags.forEach(tags => {
-            tags.forEach(tag => {
-                if (tag.selections && tag.selections.length > 1) {
-                    multiParagraphTags.add(tag);
-                }
-            });
-        });
-        return Array.from(multiParagraphTags);
+        return this.allTags.filter(tag => tag.selections && tag.selections.length > 1);
     }
 
     getTagsForParagraph(paragraphId) {
-        return [...(this.tags.get(paragraphId) || [])].sort((a, b) =>
-            a.startOffset - b.startOffset
-        );
+        return [...(this.tags.get(paragraphId) || [])].sort((a, b) => {
+            // Get selections for this paragraph
+            const selA = a.selections.find(s => s.paragraphId === paragraphId);
+            const selB = b.selections.find(s => s.paragraphId === paragraphId);
+            // Sort by start offset
+            return (selA?.startOffset || 0) - (selB?.startOffset || 0);
+        });
     }
 
     getAllParagraphIds() {
@@ -150,27 +217,17 @@ export class TagManager {
 
     getHighestTagId() {
         let highest = -1;
-        this.tags.forEach(tags => {
-            tags.forEach(tag => {
-                const id = parseInt(tag.id.replace('tag-', ''));
-                if (!isNaN(id) && id > highest) {
-                    highest = id;
-                }
-            });
+        this.allTags.forEach(tag => {
+            const id = parseInt(tag.id.replace('tag-', ''));
+            if (!isNaN(id) && id > highest) {
+                highest = id;
+            }
         });
         return highest;
     }
 
     getTagById(tagId) {
-        // Convert tagId to string to ensure consistent comparison
-        tagId = String(tagId);
-        
-        // Search through all tags in all paragraphs
-        for (const [paragraphId, tags] of this.tags.entries()) {
-            const found = tags.find(tag => String(tag.id) === tagId);
-            if (found) return found;
-        }
-        return null;
+        return this.allTags.find(tag => tag.id === tagId) || null;
     }
     
     getTagConfig(tagType) {

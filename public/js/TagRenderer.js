@@ -184,41 +184,52 @@ export class TagRenderer {
         // First, collect all paragraphs with tags
         const paragraphIds = this.tagManager.getAllParagraphIds();
         
-        // Next, get all tags across all paragraphs
-        const allTags = [];
-        paragraphIds.forEach(paragraphId => {
-            const paragraphTags = this.tagManager.getTagsForParagraph(paragraphId);
-            paragraphTags.forEach(tag => {
-                // Find the selection for this paragraph
-                const selection = tag.selections.find(s => s.paragraphId === paragraphId);
-                if (selection) {
-                    allTags.push({
-                        tag,
-                        paragraphId,
-                        selection
-                    });
-                }
-            });
-        });
-        
         // Remove all existing tag icons
         const existingIcons = Array.from(this.sidebarElement.querySelectorAll('.selection-tag-icon:not(#add-tag-button)'));
         existingIcons.forEach(icon => icon.remove());
         
-        // Calculate the desired position for each tag
-        allTags.forEach(({ tag, paragraphId, selection }) => {
-            const element = document.getElementById(paragraphId);
-            if (!element) return;
+        // Create a map to track which tags we've already processed
+        const processedTags = new Map();
+        
+        // Next, process each tag only once, with better positioning for multi-paragraph tags
+        this.tagManager.allTags.forEach(tag => {
+            if (!tag.selections || tag.selections.length === 0) return;
             
-            const iconElement = this.createTagIcon(tag);
-            const position = this.calculateElementPosition(selection, iconElement);
-            if (position !== null) {
-                iconElement.dataset.desiredPosition = position;
-                iconElement.dataset.tagId = tag.id; // Ensure tag ID is preserved
-                // Don't add to DOM yet
-                iconElement.style.position = 'absolute';
-                document.body.appendChild(iconElement); // Temporarily add to get dimensions
+            let position;
+            
+            // For multi-paragraph tags, calculate a weighted position based on all selections
+            if (tag.selections.length > 1) {
+                // Calculate positions for each paragraph selection
+                const positions = [];
+                
+                for (const selection of tag.selections) {
+                    const element = document.getElementById(selection.paragraphId);
+                    if (!element) continue;
+                    
+                    const pos = this.calculateSelectionPosition(selection);
+                    if (pos !== null) {
+                        positions.push(pos);
+                    }
+                }
+                
+                if (positions.length === 0) return; // Skip if no valid positions
+                
+                // Find the average position
+                position = positions.reduce((sum, pos) => sum + pos, 0) / positions.length;
+            } else {
+                // For single paragraph tags, use the regular calculation
+                const selection = tag.selections[0];
+                position = this.calculateSelectionPosition(selection);
+                if (position === null) return;
             }
+            
+            // Create the icon
+            const iconElement = this.createTagIcon(tag);
+            iconElement.dataset.desiredPosition = position;
+            iconElement.dataset.tagId = tag.id;
+            iconElement.style.position = 'absolute';
+            document.body.appendChild(iconElement); // Temporarily add to get dimensions
+            processedTags.set(tag.id, true);
         });
         
         // Sort all tags by their desired position
@@ -247,6 +258,37 @@ export class TagRenderer {
             // Clean up temporary attribute
             delete icon.dataset.desiredPosition;
         });
+    }
+    
+    // Helper method to calculate position just from selection info
+    calculateSelectionPosition(selection) {
+        const contentElement = document.getElementById(selection.paragraphId);
+        if (!contentElement) return null;
+
+        // Create range more robustly to handle different element structures
+        const range = document.createRange();
+        
+        // Find appropriate text nodes and create range
+        let startNode = this.findTextNodeAtOffset(contentElement, selection.startOffset);
+        let endNode = this.findTextNodeAtOffset(contentElement, selection.endOffset);
+        
+        if (!startNode || !endNode) {
+            console.error('Unable to find text nodes for selection', selection);
+            return null;
+        }
+        
+        // Set range positions
+        range.setStart(startNode.node, startNode.offset);
+        range.setEnd(endNode.node, endNode.offset);
+        
+        const rects = range.getClientRects();
+        if (!rects.length) return null;
+
+        const sidebarRect = this.sidebarElement.getBoundingClientRect();
+        const elementHeight = 32; // Fixed height for consistency
+        const position = (rects[0].top + rects[rects.length - 1].bottom) / 2 - (elementHeight / 2) - sidebarRect.top;
+
+        return position;
     }
 
     highlightParagraphSelection(element, selection, tag) {
@@ -321,18 +363,13 @@ export class TagRenderer {
     }
 
     renderTag(tag, element) {
-        // Create sidebar icon with enhanced styling
-        const iconElement = this.createTagIcon(tag);
+        // Skip directly rendering individual tags - we now do this in recalculateAllTagPositions
+        // Instead, just highlight the text in this paragraph
 
         // Find the selection for this element
         const selection = tag.selections.find(s => s.paragraphId === element.id);
         if (selection) {
-            const position = this.calculateElementPosition(selection, iconElement);
-            if (position !== null) {
-                // Set initial position but actual positioning will be handled by recalculateAllTagPositions
-                iconElement.style.top = `${position}px`;
-                this.sidebarElement.appendChild(iconElement);
-            }
+            this.highlightParagraphSelection(element, selection, tag);
         }
     }
 
@@ -345,6 +382,9 @@ export class TagRenderer {
         icon.dataset.description = config.description;
         icon.dataset.tagId = tag.id;
         icon.style.color = config.color;
+        
+        // Store all paragraph IDs for reference (for both single and multi-paragraph tags)
+        icon.dataset.paragraphIds = tag.selections.map(s => s.paragraphId).join(',');
 
         // Add custom text indicator if present
         if (tag.customText) {
@@ -352,8 +392,15 @@ export class TagRenderer {
             icon.dataset.customText = tag.customText;
         }
 
-        // Set paragraphIds for multi-paragraph tags
-        icon.dataset.paragraphId = tag.selections.map(s => s.paragraphId).join(',');
+        // Add multi-paragraph indicator if this tag spans multiple paragraphs
+        if (tag.selections && tag.selections.length > 1) {
+            icon.classList.add('multi-paragraph-tag');
+            icon.dataset.isMultiParagraph = 'true';
+            icon.dataset.paragraphCount = tag.selections.length;
+            
+            // Add tooltip to indicate it spans multiple paragraphs
+            icon.title = `This tag spans ${tag.selections.length} paragraphs`;
+        }
 
         // Create management menu
         const menu = this.createTagManagementMenu(tag);
@@ -476,7 +523,8 @@ export class TagRenderer {
                             
                             const tagIcon = document.querySelector(`.selection-tag-icon[data-tag-id="${tagId}"]`);
                             if (tagIcon) {
-                                const paragraphIds = tagIcon.dataset.paragraphId.split(',');
+                                // Add safety check for paragraphIds
+                                const paragraphIds = tagIcon.dataset.paragraphIds ? tagIcon.dataset.paragraphIds.split(',') : [];
                                 paragraphIds.forEach(paragraphId => {
                                     this.renderParagraph(paragraphId);
                                 });
@@ -511,7 +559,8 @@ export class TagRenderer {
 
                 const tagIcon = document.querySelector(`.selection-tag-icon[data-tag-id="${tagId}"]`);
                 if (tagIcon) {
-                    const paragraphIds = tagIcon.dataset.paragraphId.split(',');
+                    // Add safety check for paragraphIds
+                    const paragraphIds = tagIcon.dataset.paragraphIds ? tagIcon.dataset.paragraphIds.split(',') : [];
                     paragraphIds.forEach(paragraphId => {
                         this.renderParagraph(paragraphId);
                     });
@@ -520,7 +569,8 @@ export class TagRenderer {
                 this.tagManager.deleteTag(tagId);
                 const tagIcon = document.querySelector(`.selection-tag-icon[data-tag-id="${tagId}"]`);
                 if (tagIcon) {
-                    const paragraphIds = tagIcon.dataset.paragraphId.split(',');
+                    // Add safety check for paragraphIds
+                    const paragraphIds = tagIcon.dataset.paragraphIds ? tagIcon.dataset.paragraphIds.split(',') : [];
                     paragraphIds.forEach(paragraphId => {
                         this.renderParagraph(paragraphId);
                     });
@@ -728,7 +778,7 @@ export class TagRenderer {
     clearSidebarIcons(elementId) {
         const icons = Array.from(this.sidebarElement.querySelectorAll('.selection-tag-icon:not(#add-tag-button)'));
         icons.forEach(icon => {
-            const paragraphIds = icon.dataset.paragraphId?.split(',') || [];
+            const paragraphIds = icon.dataset.paragraphIds ? icon.dataset.paragraphIds.split(',') : [];
             if (paragraphIds.includes(elementId)) {
                 icon.remove();
             }
