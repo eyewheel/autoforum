@@ -555,6 +555,11 @@ try {
         // Get current page path
         const pathname = window.location.pathname;
         const page = pathname === '/' ? 'index' : pathname.substring(1);
+        
+        // Skip content update for home page
+        if (page === 'index' && pathname === '/') {
+            return; // Don't try to update content on the home page
+        }
 
         // Get content container
         const contentContainer = document.getElementById('content');

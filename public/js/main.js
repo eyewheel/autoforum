@@ -30,13 +30,26 @@ window.initializeTags = () => {
     }
 };
 
-document.addEventListener('DOMContentLoaded', () => {
-    // Initialize navigation sidebar
-    const sidebar = new Sidebar();
-    
-    // Initialize popup manager after sidebar
-    const popupManager = new PopupManager();
-    
-    // Initialize tags
-    window.initializeTags();
-});
+// Add this code to handle the home page content
+if (window.isHomePage) {
+    // Prevent content from being replaced on the home page
+    document.addEventListener('DOMContentLoaded', () => {
+        // Initialize sidebar only
+        import('./Sidebar.js').then(module => {
+            const Sidebar = module.Sidebar;
+            new Sidebar();
+        });
+    });
+} else {
+    // Regular page initialization with content loading
+    document.addEventListener('DOMContentLoaded', () => {
+        // Initialize navigation sidebar
+        const sidebar = new Sidebar();
+        
+        // Initialize popup manager after sidebar
+        const popupManager = new PopupManager();
+        
+        // Initialize tags
+        window.initializeTags();
+    });
+}

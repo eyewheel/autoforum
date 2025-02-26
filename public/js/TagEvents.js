@@ -55,6 +55,7 @@ export class TagEvents {
             });
         }
 
+        // Use a timeout to allow the selection to be fully updated
         setTimeout(() => {
             const selection = window.getSelection();
             const selectionText = selection.toString().trim();
@@ -65,18 +66,39 @@ export class TagEvents {
                 return;
             }
 
-            if (selection && !selection.isCollapsed && selectionText) {
-                const selectionInfo = this.getSelectionInfo(selection);
-                if (selectionInfo) {
-                    this.currentSelection = selectionInfo;
-                    this.tagRenderer.updateAddTagButtonPosition(selection);
-                }
-            } else {
+            // Clear previous selections if we have a new valid selection or no selection
+            if (selection.isCollapsed || !selectionText) {
                 this.tagRenderer.addTagButton.style.display = 'none';
                 document.querySelectorAll('.selection-tag-icon:not(#add-tag-button)').forEach(icon => {
                     icon.style.opacity = '1';
                     icon.style.transform = 'translateX(0)';
                 });
+                return;
+            }
+
+            // Check if selection is within sidebar or other UI elements
+            if (this.isSelectionInUIElement(selection)) {
+                this.tagRenderer.addTagButton.style.display = 'none';
+                return;
+            }
+
+            // Process the new selection
+            const selectionInfo = this.getSelectionInfo(selection);
+            if (selectionInfo) {
+                // Only update if we actually have a valid selection
+                this.currentSelection = selectionInfo;
+                
+                // Smoothly transition the button position rather than teleporting
+                const button = this.tagRenderer.addTagButton;
+                const currentTop = button.style.display !== 'none' ? 
+                    parseInt(button.style.top) : null;
+                
+                // Animate the transition if it's currently visible
+                if (button.style.display === 'flex' && currentTop !== null) {
+                    this.tagRenderer.updateAddTagButtonPosition(selection, true); // true = animate
+                } else {
+                    this.tagRenderer.updateAddTagButtonPosition(selection);
+                }
             }
         }, 50);
     }
@@ -215,41 +237,48 @@ export class TagEvents {
         if (!selection || selection.isCollapsed) return null;
 
         const range = selection.getRangeAt(0);
-        const startParagraph = range.startContainer.nodeType === Node.TEXT_NODE ?
-            range.startContainer.parentElement.closest('.paragraph') :
-            range.startContainer.closest('.paragraph');
+        const startElement = range.startContainer.nodeType === Node.TEXT_NODE ?
+            range.startContainer.parentElement.closest('.paragraph, h1, h2, h3, h4, h5, h6, div, span, section') :
+            range.startContainer.closest('.paragraph, h1, h2, h3, h4, h5, h6, div, span, section');
 
-        const endParagraph = range.endContainer.nodeType === Node.TEXT_NODE ?
-            range.endContainer.parentElement.closest('.paragraph') :
-            range.endContainer.closest('.paragraph');
+        const endElement = range.endContainer.nodeType === Node.TEXT_NODE ?
+            range.endContainer.parentElement.closest('.paragraph, h1, h2, h3, h4, h5, h6, div, span, section') :
+            range.endContainer.closest('.paragraph, h1, h2, h3, h4, h5, h6, div, span, section');
 
-        if (!startParagraph || !endParagraph) return null;
+        if (!startElement || !endElement) return null;
 
         const selections = [];
-        let currentParagraph = startParagraph;
+        let currentElement = startElement;
 
-        while (currentParagraph) {
-            const paragraphId = currentParagraph.id;
-            if (!currentParagraph.dataset.originalText) {
-                currentParagraph.dataset.originalText = currentParagraph.textContent;
+        while (currentElement) {
+            // Ensure the element has an ID for reference
+            if (!currentElement.id) {
+                currentElement.id = `content-${Date.now()}-${Math.floor(Math.random() * 10000)}`;
+            }
+            
+            const elementId = currentElement.id;
+            if (!currentElement.dataset.originalText) {
+                currentElement.dataset.originalText = currentElement.textContent;
             }
 
-            const paragraphText = currentParagraph.dataset.originalText;
-            const startOffset = currentParagraph === startParagraph ?
-                this.getTextOffset(startParagraph, range.startContainer, range.startOffset) : 0;
-            const endOffset = currentParagraph === endParagraph ?
-                this.getTextOffset(endParagraph, range.endContainer, range.endOffset) :
-                paragraphText.length;
+            const elementText = currentElement.dataset.originalText;
+            const startOffset = currentElement === startElement ?
+                this.getTextOffset(startElement, range.startContainer, range.startOffset) : 0;
+            const endOffset = currentElement === endElement ?
+                this.getTextOffset(endElement, range.endContainer, range.endOffset) :
+                elementText.length;
 
             selections.push({
-                paragraphId,
+                paragraphId: elementId, // Keep the property name for compatibility
                 startOffset,
                 endOffset,
-                selectedText: paragraphText.substring(startOffset, endOffset)
+                selectedText: elementText.substring(startOffset, endOffset)
             });
 
-            if (currentParagraph === endParagraph) break;
-            currentParagraph = currentParagraph.nextElementSibling?.closest('.paragraph');
+            if (currentElement === endElement) break;
+            
+            // More robust traversal to get next element
+            currentElement = this.getNextContentElement(currentElement, endElement);
         }
 
         return { selections };
@@ -269,11 +298,94 @@ export class TagEvents {
         return textOffset;
     }
 
+    // New helper method to traverse between content elements
+    getNextContentElement(current, end) {
+        // Try next sibling first
+        let next = current.nextElementSibling;
+        if (next && this.isContentElement(next)) {
+            return next;
+        }
+        
+        // Otherwise, start traversing the DOM
+        let node = current;
+        while (node) {
+            // Go to next sibling or up to parent's next sibling
+            while (!node.nextElementSibling && node.parentElement) {
+                node = node.parentElement;
+            }
+            
+            if (!node.nextElementSibling) {
+                return null; // No more elements
+            }
+            
+            node = node.nextElementSibling;
+            
+            // Check if this node is a content element
+            if (this.isContentElement(node)) {
+                return node;
+            }
+            
+            // Check if there's a content element inside this node
+            const nestedContent = node.querySelector('.paragraph, h1, h2, h3, h4, h5, h6');
+            if (nestedContent) {
+                return nestedContent;
+            }
+        }
+        
+        return null;
+    }
+
+    // Helper to check if an element is a taggable content element
+    isContentElement(element) {
+        return element.classList.contains('paragraph') || 
+               /^h[1-6]$/i.test(element.tagName) ||
+               (element.tagName === 'DIV' && element.textContent.trim() !== '');
+    }
+
     hideAllMenus() {
         this.tagRenderer.tagMenu.style.display = 'none';
         this.tagRenderer.addTagButton.style.display = 'none';
         document.querySelectorAll('.tag-management-menu').forEach(menu => {
             menu.style.display = 'none';
         });
+    }
+
+    // Add this new helper method to check if a selection is within a UI element
+    isSelectionInUIElement(selection) {
+        if (!selection || selection.isCollapsed) return true;
+        
+        const range = selection.getRangeAt(0);
+        
+        // Check if either the start or end container is in a UI element
+        const startElement = range.startContainer.nodeType === Node.TEXT_NODE ?
+            range.startContainer.parentElement : range.startContainer;
+        
+        const endElement = range.endContainer.nodeType === Node.TEXT_NODE ?
+            range.endContainer.parentElement : range.endContainer;
+        
+        // Function to check if an element is part of the UI rather than content
+        const isUIElement = (element) => {
+            if (!element) return false;
+            
+            // Check for sidebar elements
+            if (element.closest('.nav-sidebar, .nav-sidebar-toggle, .nav-sidebar-content, .nav-sidebar-links, .tag-sidebar, .personalize-popup, .contribute-overlay, .toggle-container')) {
+                return true;
+            }
+            
+            // Check for tag management elements
+            if (element.closest('.tag-management-menu, .selection-tag-icon')) {
+                return true;
+            }
+            
+            // Check if the element is outside the main content area
+            const contentContainer = document.getElementById('content');
+            if (contentContainer && !contentContainer.contains(element)) {
+                return true;
+            }
+            
+            return false;
+        };
+        
+        return isUIElement(startElement) || isUIElement(endElement);
     }
 }

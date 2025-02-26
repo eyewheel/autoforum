@@ -6,6 +6,14 @@
     <link rel="stylesheet" href="/styles/main.css">
     <link rel="stylesheet" href="/styles/sidebar.css">
     <script src="/js/popup.js" defer type="module"></script>
+    <!-- Use a home-specific script instead of main.js -->
+    <script type="module">
+        // Import and initialize only the Sidebar
+        import { Sidebar } from '/js/Sidebar.js';
+        document.addEventListener('DOMContentLoaded', () => {
+            new Sidebar();
+        });
+    </script>
 </head>
 <body>
     <div id="content">
@@ -18,6 +26,8 @@
         </ul>
         <p>Feel free to add, modify, or delete tags in any of these posts. Your changes will be saved locally in your browser.</p>
     </div>
-
+    <div id="tag-sidebar">
+        <!-- Tag icons will be placed here by JavaScript -->
+    </div>
 </body>
 </html>

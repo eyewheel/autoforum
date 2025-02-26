@@ -78,7 +78,7 @@ export class TagRenderer {
         });
     }
 
-    renderParagraph(paragraphId) {
+    renderParagraph(elementId) {
         // Check if we're in personalization mode
         if (window.contentVersion && window.contentVersion.hasPersonalization) {
             if (this.sidebarElement) {
@@ -92,50 +92,106 @@ export class TagRenderer {
             this.sidebarElement.style.display = 'block';
         }
 
-        const paragraph = document.getElementById(paragraphId);
-        if (!paragraph || !paragraph.dataset.originalText) {
-            console.error('Paragraph or original text not found:', paragraphId);
+        const element = document.getElementById(elementId);
+        if (!element || !element.dataset.originalText) {
+            console.error('Element or original text not found:', elementId);
             return;
         }
 
         // Clear existing content and restore original text
-        const originalText = paragraph.dataset.originalText;
-        paragraph.innerHTML = originalText;
+        const originalText = element.dataset.originalText;
+        element.innerHTML = originalText;
 
-        // Clear existing sidebar icons for this paragraph
-        this.clearSidebarIcons(paragraphId);
+        // Clear existing sidebar icons for this element
+        this.clearSidebarIcons(elementId);
 
         // Get and sort tags
-        const tags = this.tagManager.getTagsForParagraph(paragraphId);
+        const tags = this.tagManager.getTagsForParagraph(elementId);
         if (!tags.length) return;
 
         // Render tag icons and their hover handlers
         tags.forEach(tag => {
-            this.renderTag(tag, paragraph);
+            this.renderTag(tag, element);
         });
     }
 
-    highlightParagraphSelection(paragraph, selection, tag) {
-        const originalText = paragraph.dataset.originalText;
-        const beforeText = originalText.substring(0, selection.startOffset);
-        const selectedText = originalText.substring(selection.startOffset, selection.endOffset);
-        const afterText = originalText.substring(selection.endOffset);
-
-        // Use TAG_CONFIG for styling
+    highlightParagraphSelection(element, selection, tag) {
+        // We need a more robust approach to handle elements with nested structure
+        if (!element || !element.dataset.originalText) return;
+        
+        const originalHTML = element.dataset.originalText;
+        
+        // Create a temporary container to work with
+        const tempContainer = document.createElement('div');
+        tempContainer.innerHTML = originalHTML;
+        
+        // Create a document fragment to build our highlighted content
+        const fragment = document.createDocumentFragment();
         const config = TAG_CONFIG[tag.tagType];
         const highlightClass = `tagged-${tag.tagType}-highlighted`;
         const style = `background-color: ${config.backgroundColor};`;
-
-        paragraph.innerHTML = `${beforeText}<span class="tagged-selection ${highlightClass}"
-            data-tag-id="${tag.id}" style="${style}">${selectedText}</span>${afterText}`;
+        
+        try {
+            // Find the text nodes and create ranges
+            const startNodeInfo = this.findTextNodeAtOffset(tempContainer, selection.startOffset);
+            const endNodeInfo = this.findTextNodeAtOffset(tempContainer, selection.endOffset);
+            
+            if (!startNodeInfo || !endNodeInfo) {
+                // Fall back to the simpler approach if we can't find nodes
+                element.innerHTML = originalHTML;
+                return;
+            }
+            
+            // Create the highlight span
+            const highlightSpan = document.createElement('span');
+            highlightSpan.className = `tagged-selection ${highlightClass}`;
+            highlightSpan.dataset.tagId = tag.id;
+            highlightSpan.style = style;
+            
+            // Clone the element to preserve its structure
+            const clone = element.cloneNode(true);
+            clone.innerHTML = originalHTML;
+            
+            // Create a range that encompasses the selection
+            const range = document.createRange();
+            const startNode = this.findTextNodeAtOffset(clone, selection.startOffset);
+            const endNode = this.findTextNodeAtOffset(clone, selection.endOffset);
+            
+            if (startNode && endNode) {
+                range.setStart(startNode.node, startNode.offset);
+                range.setEnd(endNode.node, endNode.offset);
+                
+                // Surround the range with our highlight span
+                try {
+                    range.surroundContents(highlightSpan);
+                    element.innerHTML = clone.innerHTML;
+                    return;
+                } catch (e) {
+                    console.warn('Could not surround range, using fallback method', e);
+                }
+            }
+            
+            // Fallback to original simple method
+            const originalText = element.textContent;
+            const beforeText = originalText.substring(0, selection.startOffset);
+            const selectedText = originalText.substring(selection.startOffset, selection.endOffset);
+            const afterText = originalText.substring(selection.endOffset);
+            
+            element.innerHTML = `${beforeText}<span class="tagged-selection ${highlightClass}"
+                data-tag-id="${tag.id}" style="${style}">${selectedText}</span>${afterText}`;
+        } catch (error) {
+            console.error('Error highlighting selection:', error);
+            // Reset to original content on error
+            element.innerHTML = originalHTML;
+        }
     }
 
-    renderTag(tag, paragraph) {
+    renderTag(tag, element) {
         // Create sidebar icon with enhanced styling
         const iconElement = this.createTagIcon(tag);
 
-        // Find the selection for this paragraph
-        const selection = tag.selections.find(s => s.paragraphId === paragraph.id);
+        // Find the selection for this element
+        const selection = tag.selections.find(s => s.paragraphId === element.id);
         if (selection) {
             const position = this.calculateElementPosition(selection, iconElement);
             if (position !== null) {
@@ -256,21 +312,21 @@ export class TagRenderer {
     addTagIconListeners(icon, tag) {
         icon.addEventListener('mouseenter', () => {
             tag.selections.forEach(selection => {
-                const paragraph = document.getElementById(selection.paragraphId);
-                if (paragraph) {
-                    if (!paragraph.dataset.originalText) {
-                        paragraph.dataset.originalText = paragraph.textContent;
+                const element = document.getElementById(selection.paragraphId);
+                if (element) {
+                    if (!element.dataset.originalText) {
+                        element.dataset.originalText = element.textContent;
                     }
-                    this.highlightParagraphSelection(paragraph, selection, tag);
+                    this.highlightParagraphSelection(element, selection, tag);
                 }
             });
         });
 
         icon.addEventListener('mouseleave', () => {
             tag.selections.forEach(selection => {
-                const paragraph = document.getElementById(selection.paragraphId);
-                if (paragraph) {
-                    paragraph.innerHTML = paragraph.dataset.originalText;
+                const element = document.getElementById(selection.paragraphId);
+                if (element) {
+                    element.innerHTML = element.dataset.originalText;
                 }
             });
         });
@@ -283,13 +339,25 @@ export class TagRenderer {
             const range = selection.getRangeAt(0);
             rects = range.getClientRects();
         } else {
-            const paragraph = document.getElementById(selection.paragraphId);
-            if (!paragraph) return null;
+            const contentElement = document.getElementById(selection.paragraphId);
+            if (!contentElement) return null;
 
+            // Create range more robustly to handle different element structures
             const range = document.createRange();
-            const textNode = paragraph.firstChild;
-            range.setStart(textNode, selection.startOffset);
-            range.setEnd(textNode, selection.endOffset);
+            
+            // Find appropriate text nodes and create range
+            let startNode = this.findTextNodeAtOffset(contentElement, selection.startOffset);
+            let endNode = this.findTextNodeAtOffset(contentElement, selection.endOffset);
+            
+            if (!startNode || !endNode) {
+                console.error('Unable to find text nodes for selection', selection);
+                return null;
+            }
+            
+            // Set range positions
+            range.setStart(startNode.node, startNode.offset);
+            range.setEnd(endNode.node, endNode.offset);
+            
             rects = range.getClientRects();
         }
 
@@ -302,7 +370,38 @@ export class TagRenderer {
         return position;
     }
 
-    updateAddTagButtonPosition(selection) {
+    findTextNodeAtOffset(element, targetOffset) {
+        let currentOffset = 0;
+        let result = null;
+        
+        // Function to traverse nodes recursively
+        const findNode = (node) => {
+            if (result) return; // Already found
+            
+            if (node.nodeType === Node.TEXT_NODE) {
+                if (currentOffset + node.length >= targetOffset) {
+                    // Found the node containing our target offset
+                    result = {
+                        node: node,
+                        offset: targetOffset - currentOffset
+                    };
+                    return;
+                }
+                currentOffset += node.length;
+            } else if (node.nodeType === Node.ELEMENT_NODE) {
+                // Traverse child nodes
+                for (let i = 0; i < node.childNodes.length; i++) {
+                    findNode(node.childNodes[i]);
+                    if (result) return; // Stop if found
+                }
+            }
+        };
+        
+        findNode(element);
+        return result;
+    }
+
+    updateAddTagButtonPosition(selection, animate = false) {
         if (!selection) {
             this.addTagButton.style.display = 'none';
             document.querySelectorAll('.selection-tag-icon:not(#add-tag-button)').forEach(icon => {
@@ -315,6 +414,22 @@ export class TagRenderer {
         const position = this.calculateElementPosition(selection, this.addTagButton);
         if (position === null) return;
 
+        const currentTop = this.addTagButton.style.display !== 'none' ? 
+            parseFloat(this.addTagButton.style.top) : null;
+        
+        // Handle animation
+        if (animate && currentTop !== null && this.addTagButton.style.display === 'flex') {
+            // Add transition for smooth movement
+            this.addTagButton.style.transition = 'top 0.2s ease-out';
+            
+            // Schedule removal of the transition property
+            setTimeout(() => {
+                this.addTagButton.style.transition = '';
+            }, 200);
+        } else {
+            this.addTagButton.style.transition = '';
+        }
+        
         this.addTagButton.style.top = `${position}px`;
         this.addTagButton.style.display = 'flex';
 
@@ -365,11 +480,11 @@ export class TagRenderer {
         return position;
     }
 
-    clearSidebarIcons(paragraphId) {
+    clearSidebarIcons(elementId) {
         const icons = Array.from(this.sidebarElement.querySelectorAll('.selection-tag-icon:not(#add-tag-button)'));
         icons.forEach(icon => {
             const paragraphIds = icon.dataset.paragraphId?.split(',') || [];
-            if (paragraphIds.includes(paragraphId)) {
+            if (paragraphIds.includes(elementId)) {
                 icon.remove();
             }
         });
