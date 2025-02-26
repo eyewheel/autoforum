@@ -84,6 +84,8 @@ export class TagRenderer {
             button.dataset.tagType = type;
             button.dataset.icon = config.icon;
             button.dataset.description = config.description;
+            
+            // Apply styling directly from TAG_CONFIG
             button.style.color = config.color;
             
             // Add to the appropriate container based on whether it requires custom text
@@ -304,7 +306,8 @@ export class TagRenderer {
         // Create a document fragment to build our highlighted content
         const fragment = document.createDocumentFragment();
         const config = TAG_CONFIG[tag.tagType];
-        const highlightClass = `tagged-${tag.tagType}-highlighted`;
+        
+        // Apply dynamic styling from TAG_CONFIG rather than using static CSS classes
         const style = `background-color: ${config.backgroundColor};`;
         
         try {
@@ -320,7 +323,7 @@ export class TagRenderer {
             
             // Create the highlight span
             const highlightSpan = document.createElement('span');
-            highlightSpan.className = `tagged-selection ${highlightClass}`;
+            highlightSpan.className = 'tagged-selection';
             highlightSpan.dataset.tagId = tag.id;
             highlightSpan.style = style;
             
@@ -353,7 +356,7 @@ export class TagRenderer {
             const selectedText = originalText.substring(selection.startOffset, selection.endOffset);
             const afterText = originalText.substring(selection.endOffset);
             
-            element.innerHTML = `${beforeText}<span class="tagged-selection ${highlightClass}"
+            element.innerHTML = `${beforeText}<span class="tagged-selection"
                 data-tag-id="${tag.id}" style="${style}">${selectedText}</span>${afterText}`;
         } catch (error) {
             console.error('Error highlighting selection:', error);
@@ -376,12 +379,19 @@ export class TagRenderer {
     createTagIcon(tag) {
         const config = TAG_CONFIG[tag.tagType];
         const icon = document.createElement('span');
-        icon.className = `selection-tag-icon selection-tag-icon-${tag.tagType}`;
+        
+        // Use base class only, don't include type-specific classes
+        icon.className = 'selection-tag-icon';
+        
+        // Apply styling dynamically from TAG_CONFIG
         icon.textContent = config.icon;
+        icon.style.color = config.color;
+        
+        // Store metadata in data attributes
         icon.dataset.displayName = config.displayName;
         icon.dataset.description = config.description;
         icon.dataset.tagId = tag.id;
-        icon.style.color = config.color;
+        icon.dataset.tagType = tag.tagType;
         
         // Store all paragraph IDs for reference (for both single and multi-paragraph tags)
         icon.dataset.paragraphIds = tag.selections.map(s => s.paragraphId).join(',');
@@ -456,6 +466,8 @@ export class TagRenderer {
             button.dataset.newType = type;
             button.dataset.icon = config.icon;
             button.dataset.description = config.description;
+            
+            // Apply styling directly from TAG_CONFIG
             button.style.color = config.color;
             
             // Add to the appropriate container based on whether it requires custom text

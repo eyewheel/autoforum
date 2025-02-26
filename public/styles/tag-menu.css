@@ -223,47 +223,10 @@
   box-shadow: 0 1px 2px rgba(0,0,0,0.2);
 }
 
-/* Legacy tag menu button styles for backward compatibility */
-.tag-management-menu button[title^="Change tag to important"] {
-  color: #d32f2f;
-}
-
-.tag-management-menu button[title^="Change tag to question"] {
-  color: #1976d2;
-}
-
-.tag-management-menu button[title^="Change tag to definition"] {
-  color: #388e3c;
-}
-
-.tag-management-menu button[title="Delete tag"] {
-  color: #777;
-}
-
-/* Tag type specific colors - pulled from TAG_CONFIG */
-.tag-button[data-tag-type="important"] {
-  color: #d32f2f;
-}
-
-.tag-button[data-tag-type="question"] {
-  color: #1976d2;
-}
-
-.tag-button[data-tag-type="would-like-more-real-world-examples"] {
-  color: #388e3c;
-}
-
-.tag-button[data-tag-type="needs-clarification"] {
-  color: #f57c00;
-}
-
-.tag-button[data-tag-type="example"] {
-  color: #7b1fa2;
-}
-
-.tag-button[data-tag-type="suggestion"] {
-  color: #0288d1;
-}
+/* 
+ * Instead of hardcoded color classes, we'll apply tag colors
+ * dynamically in the TagRenderer.js from TAG_CONFIG
+ */
 
 /* Ensure all elements in menu don't transform */
 .tag-management-menu *,

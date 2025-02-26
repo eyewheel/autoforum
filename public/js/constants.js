@@ -1,67 +1,113 @@
 export const TAG_TYPES = {
-    IMPORTANT: 'important',
-    QUESTION: 'question',
-    DEFINITION: 'would-like-more-real-world-examples',
-    CLARIFICATION: 'needs-clarification',
+    // Reaction tags (no custom text required)
+    AGREE: 'agree',
+    DISAGREE: 'disagree',
+    INSIGHTFUL: 'insightful',
+    CONFUSING: 'confusing',
+    NEEDS_EVIDENCE: 'needs-evidence',
+    MISLEADING: 'misleading',
+    
+    // Addition tags (custom text required)
+    SOURCE: 'source',
+    COUNTERPOINT: 'counterpoint',
     EXAMPLE: 'example',
-    SUGGESTION: 'suggestion'
+    CLARIFICATION: 'clarification'
 };
 
 // Comprehensive tag configuration with metadata
 export const TAG_CONFIG = {
-    [TAG_TYPES.IMPORTANT]: {
-        icon: '★',
-        displayName: 'Important',
-        description: 'Highlight key information or concepts',
-        color: '#d32f2f',
-        backgroundColor: 'rgba(211, 47, 47, 0.15)',
+    // Reaction tags
+    [TAG_TYPES.AGREE]: {
+        icon: '👍',
+        displayName: 'Agree',
+        description: 'Strongly endorse this content',
+        color: '#2E7D32', // Green
+        backgroundColor: 'rgba(46, 125, 50, 0.15)',
         requiresCustomText: false,
-        aiHint: 'Emphasize and elaborate on this important concept'
+        aiHint: 'Readers strongly endorse this content'
     },
-    [TAG_TYPES.QUESTION]: {
-        icon: '?',
-        displayName: 'Question',
-        description: 'Mark areas needing answers or explanation',
-        color: '#1976d2',
-        backgroundColor: 'rgba(25, 118, 210, 0.15)',
-        requiresCustomText: true,
-        aiHint: 'Address this specific question or concern'
-    },
-    [TAG_TYPES.DEFINITION]: {
-        icon: '§',
-        displayName: 'Needs Examples',
-        description: 'Request more real-world examples',
-        color: '#388e3c',
-        backgroundColor: 'rgba(56, 142, 60, 0.15)',
+    [TAG_TYPES.DISAGREE]: {
+        icon: '👎',
+        displayName: 'Disagree',
+        description: 'Contest this information or reasoning',
+        color: '#C62828', // Red
+        backgroundColor: 'rgba(198, 40, 40, 0.15)',
         requiresCustomText: false,
-        aiHint: 'Provide practical examples for this concept'
+        aiHint: 'Readers contest this information or reasoning'
     },
-    [TAG_TYPES.CLARIFICATION]: {
-        icon: '↺',
-        displayName: 'Needs Clarification',
-        description: 'Mark text that needs to be explained better',
-        color: '#f57c00',
-        backgroundColor: 'rgba(245, 124, 0, 0.15)',
-        requiresCustomText: true,
-        aiHint: 'Clarify this concept with simpler explanation'
+    [TAG_TYPES.INSIGHTFUL]: {
+        icon: '💡',
+        displayName: 'Insightful',
+        description: 'Highlights particularly valuable or novel ideas',
+        color: '#F9A825', // Amber
+        backgroundColor: 'rgba(249, 168, 37, 0.15)',
+        requiresCustomText: false,
+        aiHint: 'Readers find this point especially valuable or insightful'
     },
-    [TAG_TYPES.EXAMPLE]: {
-        icon: '⚏',
-        displayName: 'Example',
-        description: 'Highlight example code or scenarios',
-        color: '#7b1fa2',
+    [TAG_TYPES.CONFUSING]: {
+        icon: '❓',
+        displayName: 'Confusing',
+        description: 'Marks text that is difficult to understand',
+        color: '#7B1FA2', // Purple
         backgroundColor: 'rgba(123, 31, 162, 0.15)',
         requiresCustomText: false,
-        aiHint: 'Reference this example in explanations'
+        aiHint: 'Readers find this explanation confusing or unclear'
     },
-    [TAG_TYPES.SUGGESTION]: {
-        icon: '✎',
-        displayName: 'Suggestion',
-        description: 'Propose improvements or alternatives',
-        color: '#0288d1',
-        backgroundColor: 'rgba(2, 136, 209, 0.15)',
+    [TAG_TYPES.NEEDS_EVIDENCE]: {
+        icon: '📊',
+        displayName: 'Needs Evidence',
+        description: 'Claims requiring better support or data',
+        color: '#0277BD', // Blue
+        backgroundColor: 'rgba(2, 119, 189, 0.15)',
+        requiresCustomText: false,
+        aiHint: 'Readers request more evidence to support this claim'
+    },
+    [TAG_TYPES.MISLEADING]: {
+        icon: '⚠️',
+        displayName: 'Misleading',
+        description: 'Flags potentially inaccurate information',
+        color: '#FF5722', // Deep Orange
+        backgroundColor: 'rgba(255, 87, 34, 0.15)',
+        requiresCustomText: false,
+        aiHint: 'Readers flag this as potentially misleading or inaccurate'
+    },
+    
+    // Addition tags
+    [TAG_TYPES.SOURCE]: {
+        icon: '📚',
+        displayName: 'Source',
+        description: 'Add references, citations, or evidence',
+        color: '#1565C0', // Blue
+        backgroundColor: 'rgba(21, 101, 192, 0.15)',
         requiresCustomText: true,
-        aiHint: 'Consider this suggestion for improvement'
+        aiHint: 'Consider this source or reference added by readers'
+    },
+    [TAG_TYPES.COUNTERPOINT]: {
+        icon: '⚖️',
+        displayName: 'Counterpoint',
+        description: 'Present opposing viewpoints or arguments',
+        color: '#6A1B9A', // Purple
+        backgroundColor: 'rgba(106, 27, 154, 0.15)',
+        requiresCustomText: true,
+        aiHint: 'Consider this counterargument from readers'
+    },
+    [TAG_TYPES.EXAMPLE]: {
+        icon: '🔍',
+        displayName: 'Example',
+        description: 'Provide real-world examples illustrating the concept',
+        color: '#2E7D32', // Green
+        backgroundColor: 'rgba(46, 125, 50, 0.15)',
+        requiresCustomText: true,
+        aiHint: 'Consider this example added by readers'
+    },
+    [TAG_TYPES.CLARIFICATION]: {
+        icon: '🔆',
+        displayName: 'Clarification',
+        description: 'Elaborate on concepts needing additional explanation',
+        color: '#E65100', // Orange
+        backgroundColor: 'rgba(230, 81, 0, 0.15)',
+        requiresCustomText: true,
+        aiHint: 'Consider this clarification from readers'
     }
 };
 
