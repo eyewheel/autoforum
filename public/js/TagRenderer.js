@@ -174,9 +174,78 @@ export class TagRenderer {
         const tags = this.tagManager.getTagsForParagraph(elementId);
         if (!tags.length) return;
 
-        // Render tag icons and their hover handlers
-        tags.forEach(tag => {
-            this.renderTag(tag, element);
+        // Trigger a complete recalculation of all tag positions
+        // This ensures proper positioning after add/edit/delete operations
+        this.recalculateAllTagPositions();
+    }
+
+    // New method to recalculate all tag positions properly
+    recalculateAllTagPositions() {
+        // First, collect all paragraphs with tags
+        const paragraphIds = this.tagManager.getAllParagraphIds();
+        
+        // Next, get all tags across all paragraphs
+        const allTags = [];
+        paragraphIds.forEach(paragraphId => {
+            const paragraphTags = this.tagManager.getTagsForParagraph(paragraphId);
+            paragraphTags.forEach(tag => {
+                // Find the selection for this paragraph
+                const selection = tag.selections.find(s => s.paragraphId === paragraphId);
+                if (selection) {
+                    allTags.push({
+                        tag,
+                        paragraphId,
+                        selection
+                    });
+                }
+            });
+        });
+        
+        // Remove all existing tag icons
+        const existingIcons = Array.from(this.sidebarElement.querySelectorAll('.selection-tag-icon:not(#add-tag-button)'));
+        existingIcons.forEach(icon => icon.remove());
+        
+        // Calculate the desired position for each tag
+        allTags.forEach(({ tag, paragraphId, selection }) => {
+            const element = document.getElementById(paragraphId);
+            if (!element) return;
+            
+            const iconElement = this.createTagIcon(tag);
+            const position = this.calculateElementPosition(selection, iconElement);
+            if (position !== null) {
+                iconElement.dataset.desiredPosition = position;
+                iconElement.dataset.tagId = tag.id; // Ensure tag ID is preserved
+                // Don't add to DOM yet
+                iconElement.style.position = 'absolute';
+                document.body.appendChild(iconElement); // Temporarily add to get dimensions
+            }
+        });
+        
+        // Sort all tags by their desired position
+        const iconsToPosition = Array.from(document.body.querySelectorAll('.selection-tag-icon[data-desired-position]'))
+            .sort((a, b) => parseFloat(a.dataset.desiredPosition) - parseFloat(b.dataset.desiredPosition));
+        
+        // Now position each icon, adjusting to prevent overlaps
+        let lastPosition = -20; // Initialize with a reasonable starting offset
+        
+        iconsToPosition.forEach(icon => {
+            const desiredPosition = parseFloat(icon.dataset.desiredPosition);
+            let newPosition = desiredPosition;
+            
+            // Ensure minimum spacing between icons
+            if (newPosition < lastPosition + 35) { // Use icon height + small gap
+                newPosition = lastPosition + 35;
+            }
+            
+            icon.style.top = `${newPosition}px`;
+            lastPosition = newPosition;
+            
+            // Move from temporary body location to sidebar
+            document.body.removeChild(icon);
+            this.sidebarElement.appendChild(icon);
+            
+            // Clean up temporary attribute
+            delete icon.dataset.desiredPosition;
         });
     }
 
@@ -260,8 +329,8 @@ export class TagRenderer {
         if (selection) {
             const position = this.calculateElementPosition(selection, iconElement);
             if (position !== null) {
-                const adjustedPosition = this.findAvailablePosition(position);
-                iconElement.style.top = `${adjustedPosition}px`;
+                // Set initial position but actual positioning will be handled by recalculateAllTagPositions
+                iconElement.style.top = `${position}px`;
                 this.sidebarElement.appendChild(iconElement);
             }
         }
