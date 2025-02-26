@@ -16,7 +16,7 @@ export class TagRenderer {
         const button = document.createElement('button');
         button.className = 'selection-tag-icon';
         button.innerHTML = '+';
-        button.title = 'Add Tag';
+        button.dataset.description = 'Add Tag';
         button.id = 'add-tag-button';
         button.style.display = 'none';
         this.sidebarElement.appendChild(button);
@@ -39,7 +39,6 @@ export class TagRenderer {
         Object.entries(TAG_CONFIG).forEach(([type, config]) => {
             const button = document.createElement('button');
             button.textContent = config.displayName;
-            button.title = config.description;
             button.dataset.tagType = type;
             button.dataset.icon = config.icon;
             button.dataset.description = config.description;
@@ -207,14 +206,15 @@ export class TagRenderer {
         const icon = document.createElement('span');
         icon.className = `selection-tag-icon selection-tag-icon-${tag.tagType}`;
         icon.textContent = config.icon;
-        icon.title = config.displayName;
+        icon.dataset.displayName = config.displayName;
+        icon.dataset.description = config.description;
         icon.dataset.tagId = tag.id;
         icon.style.color = config.color;
 
         // Add custom text indicator if present
         if (tag.customText) {
             icon.classList.add('has-custom-text');
-            icon.title += `: ${tag.customText}`;
+            icon.dataset.customText = tag.customText;
         }
 
         // Set paragraphIds for multi-paragraph tags
@@ -246,9 +246,9 @@ export class TagRenderer {
         Object.entries(TAG_CONFIG).forEach(([type, config]) => {
             const button = document.createElement('button');
             button.textContent = config.displayName;
-            button.title = `Change to ${config.displayName}`;
             button.dataset.newType = type;
             button.dataset.icon = config.icon;
+            button.dataset.description = config.description;
             button.style.color = config.color;
             buttonsContainer.appendChild(button);
         });
@@ -264,7 +264,7 @@ export class TagRenderer {
         // Add delete button
         const deleteButton = document.createElement('button');
         deleteButton.textContent = 'Delete';
-        deleteButton.title = 'Delete tag';
+        deleteButton.dataset.description = 'Delete this tag';
         deleteButton.className = 'delete-tag';
         buttonsContainer.appendChild(deleteButton);
 
