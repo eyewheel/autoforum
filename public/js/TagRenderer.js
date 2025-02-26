@@ -58,19 +58,45 @@ export class TagRenderer {
         // Get the buttons container
         const buttonsContainer = menu.querySelector('.tag-buttons-container');
         
-        // Add tag type buttons with enhanced info
+        // Create separate containers for reactions and additions
+        const reactionsContainer = document.createElement('div');
+        reactionsContainer.className = 'reactions-container';
+        
+        const reactionsTitle = document.createElement('h4');
+        reactionsTitle.className = 'section-title';
+        reactionsTitle.textContent = 'Reactions';
+        reactionsContainer.appendChild(reactionsTitle);
+        
+        const additionsContainer = document.createElement('div');
+        additionsContainer.className = 'additions-container';
+        
+        const additionsTitle = document.createElement('h4');
+        additionsTitle.className = 'section-title';
+        additionsTitle.textContent = 'Additions';
+        additionsContainer.appendChild(additionsTitle);
+        
+        // Categorize and add type change buttons
         Object.entries(TAG_CONFIG).forEach(([type, config]) => {
             const tagButtonTemplate = document.getElementById('tag-button-template');
             const button = tagButtonTemplate.content.cloneNode(true).querySelector('.tag-button');
             
             button.textContent = config.displayName;
-            button.dataset.tagType = type;
+            button.dataset.newType = type;
             button.dataset.icon = config.icon;
             button.dataset.description = config.description;
             button.style.color = config.color;
             
-            buttonsContainer.appendChild(button);
+            // Add to the appropriate container based on whether it requires custom text
+            if (config.requiresCustomText) {
+                additionsContainer.appendChild(button);
+            } else {
+                reactionsContainer.appendChild(button);
+            }
         });
+        
+        // Add containers to the buttons container
+        buttonsContainer.appendChild(reactionsContainer);
+        buttonsContainer.appendChild(additionsContainer);
         
         // Add event listeners for input handling
         const inputContainer = menu.querySelector('.tag-input-container');
@@ -288,7 +314,24 @@ export class TagRenderer {
         // Get the buttons container
         const buttonsContainer = menu.querySelector('.tag-buttons-container');
         
-        // Add type change buttons
+        // Create separate containers for reactions and additions
+        const reactionsContainer = document.createElement('div');
+        reactionsContainer.className = 'reactions-container';
+        
+        const reactionsTitle = document.createElement('h4');
+        reactionsTitle.className = 'section-title';
+        reactionsTitle.textContent = 'Reactions';
+        reactionsContainer.appendChild(reactionsTitle);
+        
+        const additionsContainer = document.createElement('div');
+        additionsContainer.className = 'additions-container';
+        
+        const additionsTitle = document.createElement('h4');
+        additionsTitle.className = 'section-title';
+        additionsTitle.textContent = 'Additions';
+        additionsContainer.appendChild(additionsTitle);
+        
+        // Categorize and add type change buttons
         Object.entries(TAG_CONFIG).forEach(([type, config]) => {
             const tagButtonTemplate = document.getElementById('tag-button-template');
             const button = tagButtonTemplate.content.cloneNode(true).querySelector('.tag-button');
@@ -299,8 +342,17 @@ export class TagRenderer {
             button.dataset.description = config.description;
             button.style.color = config.color;
             
-            buttonsContainer.appendChild(button);
+            // Add to the appropriate container based on whether it requires custom text
+            if (config.requiresCustomText) {
+                additionsContainer.appendChild(button);
+            } else {
+                reactionsContainer.appendChild(button);
+            }
         });
+        
+        // Add containers to the buttons container
+        buttonsContainer.appendChild(reactionsContainer);
+        buttonsContainer.appendChild(additionsContainer);
         
         // Add delete button
         const deleteButtonTemplate = document.getElementById('delete-button-template');

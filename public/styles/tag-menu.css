@@ -22,6 +22,34 @@
   flex-direction: column;
 }
 
+/* Section containers for reactions and additions */
+.reactions-container,
+.additions-container {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+}
+
+/* Add spacing between sections */
+.additions-container {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid #eee;
+}
+
+/* Section titles */
+.section-title {
+  font-size: 11px;
+  font-weight: 600;
+  color: #555;
+  margin: 0 0 8px 0;
+  padding: 0 0 4px 0;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  text-align: center;
+  width: 100%;
+}
+
 /* Legacy menu buttons with enhanced info display */
 .tag-buttons-container button {
   padding: 10px 16px;
