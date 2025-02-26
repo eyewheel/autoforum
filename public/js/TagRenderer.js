@@ -75,13 +75,13 @@ export class TagRenderer {
         additionsTitle.textContent = 'Additions';
         additionsContainer.appendChild(additionsTitle);
         
-        // Categorize and add type change buttons
+        // Categorize and add tag buttons
         Object.entries(TAG_CONFIG).forEach(([type, config]) => {
             const tagButtonTemplate = document.getElementById('tag-button-template');
             const button = tagButtonTemplate.content.cloneNode(true).querySelector('.tag-button');
             
             button.textContent = config.displayName;
-            button.dataset.newType = type;
+            button.dataset.tagType = type;
             button.dataset.icon = config.icon;
             button.dataset.description = config.description;
             button.style.color = config.color;
