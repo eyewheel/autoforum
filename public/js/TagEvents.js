@@ -205,30 +205,29 @@ export class TagEvents {
 
             // Toggle current menu
             const isVisible = menu.style.display === 'flex';
-            menu.style.display = isVisible ? 'none' : 'flex';
-
-            if (!isVisible) {
-                // Show/hide input container based on icon type
+            
+            if (isVisible) {
+                menu.style.display = 'none';
+            } else {
+                // Show/hide input container based on tag type requirements
                 const inputContainer = menu.querySelector('.tag-input-container');
                 if (inputContainer) {
-                    inputContainer.style.display = icon.id === 'add-tag-button' ? 'none' : 'flex';
+                    if (icon.id === 'add-tag-button') {
+                        // For add tag button, initially hide the input
+                        inputContainer.style.display = 'none';
+                    } else {
+                        // For existing tags, check if the tag type requires custom text
+                        const tagId = icon.dataset.tagId;
+                        const tag = this.tagManager.getTagById(tagId);
+                        if (tag) {
+                            const tagConfig = this.tagRenderer.tagManager.getTagConfig(tag.tagType);
+                            inputContainer.style.display = tagConfig.requiresCustomText ? 'flex' : 'none';
+                        }
+                    }
                 }
 
-                // Get the icon's position
-                const buttonRect = icon.getBoundingClientRect();
-                const scrollY = window.scrollY;
-                const scrollX = window.scrollX;
-
-                // Calculate absolute positions
-                const absoluteButtonTop = buttonRect.top + scrollY;
-                const absoluteButtonRight = buttonRect.right + scrollX;
-
-                // Position menu
-                menu.style.visibility = 'hidden';
-                menu.style.display = 'flex';
-                menu.style.left = `${absoluteButtonRight + 5}px`;
-                menu.style.top = `${absoluteButtonTop}px`;
-                menu.style.visibility = 'visible';
+                // Use the new positioning function
+                this.tagRenderer.positionMenu(menu, icon);
             }
         }
     }

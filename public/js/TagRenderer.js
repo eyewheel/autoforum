@@ -10,63 +10,103 @@ export class TagRenderer {
         if (!this.sidebarElement) {
             throw new Error('Tag sidebar element not found');
         }
+
+        // Listen for window resize to adjust visible menus
+        window.addEventListener('resize', () => {
+            this.adjustVisibleMenus();
+        });
     }
 
     createAddTagButton() {
-        const button = document.createElement('button');
-        button.className = 'selection-tag-icon';
-        button.innerHTML = '+';
+        // Use the template instead of creating button with JS
+        const template = document.getElementById('add-tag-button-template');
+        if (!template) {
+            console.warn('Add tag button template not found, waiting for templates to load');
+            // Create a simple fallback button if template isn't available yet
+            const button = document.createElement('button');
+            button.className = 'selection-tag-icon';
+            button.innerHTML = '+';
+            button.dataset.description = 'Add Tag';
+            button.id = 'add-tag-button';
+            button.style.display = 'none';
+            this.sidebarElement.appendChild(button);
+            return button;
+        }
+        
+        const button = template.content.cloneNode(true).querySelector('#add-tag-button');
         button.dataset.description = 'Add Tag';
-        button.id = 'add-tag-button';
-        button.style.display = 'none';
         this.sidebarElement.appendChild(button);
         return button;
     }
 
     createTagMenu() {
-        const menu = document.createElement('div');
-        menu.className = 'tag-management-menu add-tag-menu';
-        menu.style.position = 'absolute';
-        menu.style.display = 'none';
+        // Use the template instead of creating menu with JS
+        const template = document.getElementById('add-tag-menu-template');
+        if (!template) {
+            console.warn('Tag menu template not found, waiting for templates to load');
+            // Create a simple menu as fallback
+            const menu = document.createElement('div');
+            menu.className = 'tag-management-menu add-tag-menu';
+            menu.style.display = 'none';
+            document.body.appendChild(menu);
+            return menu;
+        }
+        
+        const menu = template.content.cloneNode(true).querySelector('.tag-management-menu');
         document.body.appendChild(menu);
-
-        // Create buttons container
-        const buttonsContainer = document.createElement('div');
-        buttonsContainer.className = 'tag-buttons-container';
-        menu.appendChild(buttonsContainer);
-
+        
+        // Get the buttons container
+        const buttonsContainer = menu.querySelector('.tag-buttons-container');
+        
         // Add tag type buttons with enhanced info
         Object.entries(TAG_CONFIG).forEach(([type, config]) => {
-            const button = document.createElement('button');
+            const tagButtonTemplate = document.getElementById('tag-button-template');
+            const button = tagButtonTemplate.content.cloneNode(true).querySelector('.tag-button');
+            
             button.textContent = config.displayName;
             button.dataset.tagType = type;
             button.dataset.icon = config.icon;
             button.dataset.description = config.description;
             button.style.color = config.color;
+            
             buttonsContainer.appendChild(button);
         });
-
-        // Add input container for custom text
-        const inputContainer = document.createElement('div');
-        inputContainer.className = 'tag-input-container';
-        inputContainer.style.display = 'none';
-        menu.appendChild(inputContainer);
-
-        // Add input field
-        const input = document.createElement('input');
-        input.type = 'text';
-        input.placeholder = 'Enter custom text...';
-        input.className = 'tag-input';
-        inputContainer.appendChild(input);
-
-        // Add submit button
-        const submitButton = document.createElement('button');
-        submitButton.className = 'tag-submit';
-        submitButton.innerHTML = '→';
-        submitButton.title = 'Submit';
-        inputContainer.appendChild(submitButton);
-
+        
+        // Add event listeners for input handling
+        const inputContainer = menu.querySelector('.tag-input-container');
+        const input = menu.querySelector('.tag-input');
+        const submitButton = menu.querySelector('.tag-submit');
+        
+        // Prevent menu from closing when clicking on input or button
+        inputContainer.addEventListener('click', (e) => {
+            e.stopPropagation();
+        });
+        inputContainer.addEventListener('mousedown', (e) => {
+            e.stopPropagation();
+        });
+        
+        // Set up textarea auto-resize
+        this.setupTextareaAutoResize(input);
+        
         return menu;
+    }
+
+    // Add method to handle textarea auto-resize
+    setupTextareaAutoResize(textarea) {
+        if (!textarea) return;
+        
+        const adjustHeight = () => {
+            textarea.style.height = 'auto';
+            textarea.style.height = Math.min(120, textarea.scrollHeight) + 'px';
+        };
+        
+        textarea.addEventListener('input', adjustHeight);
+        textarea.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                // Let the textarea naturally grow to accommodate the new line
+                setTimeout(adjustHeight, 0);
+            }
+        });
     }
 
     hideMenus() {
@@ -232,42 +272,65 @@ export class TagRenderer {
     }
 
     createTagManagementMenu(tag) {
-        const menu = document.createElement('div');
-        menu.className = 'tag-management-menu tag-icon-menu';
-        menu.style.position = 'absolute';
-        menu.style.display = 'none';
-
-        // Create buttons container
-        const buttonsContainer = document.createElement('div');
-        buttonsContainer.className = 'tag-buttons-container';
-        menu.appendChild(buttonsContainer);
-
+        // Use the template instead of creating menu with JS
+        const template = document.getElementById('tag-management-menu-template');
+        if (!template) {
+            console.warn('Tag management menu template not found, waiting for templates to load');
+            // Create a simple fallback menu
+            const menu = document.createElement('div');
+            menu.className = 'tag-management-menu tag-icon-menu';
+            menu.style.display = 'none';
+            return menu;
+        }
+        
+        const menu = template.content.cloneNode(true).querySelector('.tag-management-menu');
+        
+        // Get the buttons container
+        const buttonsContainer = menu.querySelector('.tag-buttons-container');
+        
         // Add type change buttons
         Object.entries(TAG_CONFIG).forEach(([type, config]) => {
-            const button = document.createElement('button');
+            const tagButtonTemplate = document.getElementById('tag-button-template');
+            const button = tagButtonTemplate.content.cloneNode(true).querySelector('.tag-button');
+            
             button.textContent = config.displayName;
             button.dataset.newType = type;
             button.dataset.icon = config.icon;
             button.dataset.description = config.description;
             button.style.color = config.color;
+            
             buttonsContainer.appendChild(button);
         });
-
+        
+        // Add delete button
+        const deleteButtonTemplate = document.getElementById('delete-button-template');
+        const deleteButton = deleteButtonTemplate.content.cloneNode(true).querySelector('.delete-tag');
+        deleteButton.dataset.description = 'Delete this tag';
+        buttonsContainer.appendChild(deleteButton);
+        
         // Add custom text if present
         if (tag.customText) {
             const textDisplay = document.createElement('div');
             textDisplay.className = 'tag-custom-text';
             textDisplay.textContent = tag.customText;
-            menu.appendChild(textDisplay);
+            menu.querySelector('.tag-custom-text-container').appendChild(textDisplay);
         }
-
-        // Add delete button
-        const deleteButton = document.createElement('button');
-        deleteButton.textContent = 'Delete';
-        deleteButton.dataset.description = 'Delete this tag';
-        deleteButton.className = 'delete-tag';
-        buttonsContainer.appendChild(deleteButton);
-
+        
+        // Set up input for custom text if needed
+        const inputContainer = menu.querySelector('.tag-input-container');
+        const input = menu.querySelector('.tag-input');
+        
+        // Only show input container if the tag type requires custom text
+        const tagConfig = TAG_CONFIG[tag.tagType];
+        inputContainer.style.display = tagConfig.requiresCustomText ? 'flex' : 'none';
+        
+        if (tag.customText) {
+            input.value = tag.customText;
+        }
+        
+        // Set up textarea auto-resize
+        this.setupTextareaAutoResize(input);
+        
         // Add click handler to menu buttons
         menu.addEventListener('click', (event) => {
             event.stopPropagation();
@@ -276,13 +339,52 @@ export class TagRenderer {
 
             if (event.target.dataset.newType) {
                 const newType = event.target.dataset.newType;
+                
                 // Check if the new type requires custom text
-                if (TAG_CONFIG[newType].requiresCustomText && !tag.customText) {
-                    const input = prompt('Enter custom text for this tag:');
-                    if (input) {
-                        this.tagManager.updateTag(tagId, newType, input);
-                    }
+                if (TAG_CONFIG[newType].requiresCustomText) {
+                    // Show input container
+                    inputContainer.style.display = 'flex';
+                    input.focus();
+                    
+                    // Update the submit button's click handler for this specific action
+                    const submitButton = menu.querySelector('.tag-submit');
+                    const handleCustomTextSubmit = () => {
+                        const customText = input.value.trim();
+                        if (customText) {
+                            this.tagManager.updateTag(tagId, newType, customText);
+                            
+                            const tagIcon = document.querySelector(`.selection-tag-icon[data-tag-id="${tagId}"]`);
+                            if (tagIcon) {
+                                const paragraphIds = tagIcon.dataset.paragraphId.split(',');
+                                paragraphIds.forEach(paragraphId => {
+                                    this.renderParagraph(paragraphId);
+                                });
+                            }
+                            
+                            menu.style.display = 'none';
+                            inputContainer.style.display = 'none';
+                            
+                            // Remove this one-time event listener
+                            submitButton.removeEventListener('click', handleCustomTextSubmit);
+                        }
+                    };
+                    
+                    // Add one-time event listener
+                    submitButton.addEventListener('click', handleCustomTextSubmit);
+                    
+                    // Also handle enter key
+                    const handleEnterKey = (e) => {
+                        if (e.key === 'Enter') {
+                            handleCustomTextSubmit();
+                            input.removeEventListener('keydown', handleEnterKey);
+                        }
+                    };
+                    input.addEventListener('keydown', handleEnterKey);
+                    
+                    return;
                 } else {
+                    // Hide input container for types that don't require custom text
+                    inputContainer.style.display = 'none';
                     this.tagManager.updateTagType(tagId, newType);
                 }
 
@@ -305,6 +407,22 @@ export class TagRenderer {
             }
             menu.style.display = 'none';
         });
+        
+        // Prevent menu from closing when clicking on input
+        inputContainer.addEventListener('click', (e) => {
+            e.stopPropagation();
+        });
+        inputContainer.addEventListener('mousedown', (e) => {
+            e.stopPropagation();
+        });
+
+        // Add a method to show the menu properly positioned
+        const showMenuForIcon = (icon) => {
+            this.positionMenu(menu, icon);
+        };
+        
+        // Store the show function on the menu
+        menu.showForIcon = showMenuForIcon;
 
         return menu;
     }
@@ -329,6 +447,12 @@ export class TagRenderer {
                     element.innerHTML = element.dataset.originalText;
                 }
             });
+        });
+
+        // Add click handler to show menu
+        icon.addEventListener('click', (e) => {
+            // We'll let the TagEvents class handle this through its existing handleTagIconClick
+            // No need to do anything here as it's already handled
         });
     }
 
@@ -486,6 +610,83 @@ export class TagRenderer {
             const paragraphIds = icon.dataset.paragraphId?.split(',') || [];
             if (paragraphIds.includes(elementId)) {
                 icon.remove();
+            }
+        });
+    }
+
+    // Add a new method to position the menu and ensure it's visible
+    positionMenu(menu, referenceElement) {
+        // Reset any previous width adjustments
+        menu.style.width = '';
+        menu.style.minWidth = '220px';
+        menu.style.maxWidth = '300px';
+        
+        // Make sure the menu is visible so we can get its dimensions
+        menu.style.display = 'flex';
+        menu.style.visibility = 'hidden'; // Hide it visually until positioning is complete
+        
+        // Get element and viewport dimensions
+        const elementRect = referenceElement.getBoundingClientRect();
+        const menuRect = menu.getBoundingClientRect();
+        const viewportWidth = window.innerWidth;
+        const viewportHeight = window.innerHeight;
+        
+        // Calculate initial position (to the right of the element)
+        let left = elementRect.right + 10;
+        let top = elementRect.top;
+        
+        // Check if menu would go off right edge of screen
+        if (left + menuRect.width > viewportWidth - 20) {
+            // Position to the left of the element instead
+            left = elementRect.left - menuRect.width - 10;
+            
+            // If still off screen on the left, align with left edge of viewport
+            if (left < 20) {
+                left = 20;
+                
+                // If we're constrained on both sides, adjust the width
+                let availableWidth = viewportWidth - 40; // 20px margin on each side
+                
+                // Don't make it too small
+                availableWidth = Math.max(availableWidth, 150);
+                
+                menu.style.width = `${availableWidth}px`;
+                menu.style.minWidth = `${availableWidth}px`;
+                menu.style.maxWidth = `${availableWidth}px`;
+            }
+        }
+        
+        // Check if menu would go off bottom edge of screen
+        if (top + menuRect.height > viewportHeight - 20) {
+            // Align bottom of menu with bottom of viewport
+            top = viewportHeight - menuRect.height - 20;
+            
+            // Don't let it go above the top edge
+            top = Math.max(top, 20);
+        }
+        
+        // Set final position
+        menu.style.left = `${left}px`;
+        menu.style.top = `${top}px`;
+        menu.style.visibility = ''; // Make it visible again
+        
+        return menu;
+    }
+    
+    // Function to adjust all visible menus
+    adjustVisibleMenus() {
+        const visibleMenus = document.querySelectorAll('.tag-management-menu[style*="display: flex"]');
+        visibleMenus.forEach(menu => {
+            // Find the associated tag icon
+            const tagId = menu.dataset.tagIconId;
+            if (tagId) {
+                const icon = document.querySelector(`.selection-tag-icon[data-tag-id="${tagId}"]`);
+                if (icon) {
+                    this.positionMenu(menu, icon);
+                }
+            } else if (menu === this.tagMenu) {
+                // For the add tag menu
+                this.positionMenu(menu, this.addTagButton);
             }
         });
     }

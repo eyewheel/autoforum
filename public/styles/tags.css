@@ -58,145 +58,15 @@
     transform: scale(1.1);
 }
 
-/* Tag menu styles */
-.tag-management-menu {
-    position: fixed;
-    background-color: white;
-    border: 1px solid #ccc;
-    border-radius: 12px;
-    padding: 12px;
-    display: none;
-    z-index: 9999;
-    flex-direction: column;
-    gap: 8px;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.25);
-    min-width: 200px; /* Increased for better text display */
-    transform: none !important;
-}
-
-/* Tag type button container */
-.tag-buttons-container {
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-}
-
-/* Menu buttons with enhanced info display */
-.tag-management-menu button {
-    padding: 10px 16px;
-    width: 100%;
-    text-align: left;
-    border: none;
-    background: none;
-    cursor: pointer;
-    border-radius: 6px;
-    transition: background-color 0.2s;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    font-size: 14px;
-    position: relative;
-}
-
-/* Tag icon in button */
-.tag-management-menu button::before {
-    content: attr(data-icon);
-    font-size: 18px;
-    width: 24px;
-    text-align: center;
-}
-
-/* Tag description tooltip - moved to top of buttons */
-.tag-management-menu button:hover::after {
-    content: attr(data-description);
-    position: absolute;
-    bottom: 100%;
-    left: 50%;
-    transform: translateX(-50%);
-    background: rgba(0, 0, 0, 0.8);
-    color: white;
-    padding: 6px 12px;
-    border-radius: 4px;
-    font-size: 12px;
-    width: 150px;
-    white-space: normal;
-    word-wrap: break-word;
-    margin-bottom: 8px;
-    z-index: 1000;
-    text-align: center;
-}
-
-.tag-management-menu button:hover {
-    background-color: #f8f9fa;
-}
-
-/* Enhanced tag input container */
-.tag-input-container {
-    display: none;
-    flex-direction: column;
-    gap: 8px;
-    margin-top: 8px;
-    padding-top: 8px;
-    border-top: 1px solid #eee;
-}
-
-/* Tag input field with better focus states */
-.tag-input {
-    flex: 1;
-    padding: 8px 12px;
-    border: 1px solid #ccc;
-    border-radius: 6px;
-    font-size: 14px;
-    outline: none;
-    transition: all 0.2s;
-}
-
-.tag-input:focus {
-    border-color: #0d6efd;
-    box-shadow: 0 0 0 2px rgba(13, 110, 253, 0.3);
-}
-
-/* Custom text indicator */
-.has-custom-text::after {
-    content: '✍';
-    position: absolute;
-    bottom: -4px;
-    right: -4px;
-    font-size: 12px;
-    background: white;
-    border-radius: 50%;
-    padding: 2px;
-    box-shadow: 0 1px 2px rgba(0,0,0,0.2);
-}
-
-/* Tag submit button */
-.tag-submit {
-    padding: 8px 12px !important;
-    background-color: #0d6efd !important;
-    color: white !important;
-    border-radius: 6px !important;
-    cursor: pointer;
-    transition: all 0.2s;
-    box-shadow: 0 2px 4px rgba(13, 110, 253, 0.2);
-}
-
-.tag-submit:hover {
-    background-color: #0b5ed7 !important;
-    transform: translateY(-1px);
-}
-
-/* Tag type specific colors - kept for backward compatibility */
-.tag-management-menu button[title^="Change tag to important"],
+/* Tag type specific colors */
 .selection-tag-icon-important {
     color: #d32f2f;
 }
 
-.tag-management-menu button[title^="Change tag to question"],
 .selection-tag-icon-question {
     color: #1976d2;
 }
 
-.tag-management-menu button[title^="Change tag to definition"],
 .selection-tag-icon-would-like-more-real-world-examples {
     color: #388e3c;
 }
@@ -212,10 +82,6 @@
 
 .selection-tag-icon-suggestion {
     color: #0288d1;
-}
-
-.tag-management-menu button[title="Delete tag"] {
-    color: #777;
 }
 
 /* Tagged text highlighting */
@@ -253,20 +119,7 @@
 
 /* Menu transform overrides */
 .selection-tag-icon .tag-management-menu,
-.selection-tag-icon:hover .tag-management-menu,
-.tag-management-menu *,
-.tag-management-menu *:hover {
+.selection-tag-icon:hover .tag-management-menu {
     transform: none !important;
     transition: none !important;
-}
-
-/* Custom text display in menu */
-.tag-custom-text {
-    font-size: 12px;
-    color: #666;
-    margin-top: 4px;
-    padding: 4px 8px;
-    background: #f8f9fa;
-    border-radius: 4px;
-    word-break: break-all;
 }

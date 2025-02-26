@@ -1,0 +1,254 @@
+/* TAG MENU STYLES
+-------------------------------------------------- */
+
+/* Base menu container */
+.tag-management-menu {
+  position: fixed;
+  background-color: white;
+  border: 1px solid #ccc;
+  border-radius: 12px;
+  padding: 12px;
+  z-index: 9999;
+  display: none;
+  flex-direction: column;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.25);
+  min-width: 200px; /* Increased for better text display */
+  transform: none !important;
+}
+
+/* Tag buttons container */
+.tag-buttons-container {
+  display: flex;
+  flex-direction: column;
+}
+
+/* Legacy menu buttons with enhanced info display */
+.tag-buttons-container button {
+  padding: 10px 16px;
+  width: 100%;
+  text-align: left;
+  border: none;
+  background: none;
+  cursor: pointer;
+  border-radius: 6px;
+  transition: background-color 0.2s;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  position: relative;
+}
+
+/* Button icon styles - more generic to catch all possible icon implementations */
+.tag-button i,
+.tag-button svg,
+.tag-button .icon,
+.tag-button::before,
+.tag-management-menu button i,
+.tag-management-menu button svg,
+.tag-management-menu button::before {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  width: 20px;
+  height: 20px;
+  margin-right: 4px;
+}
+
+/* Display tag icon from data-icon attribute */
+.tag-button::before {
+  content: attr(data-icon);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  margin-right: 4px;
+}
+
+.tag-button:hover,
+.tag-management-menu button:hover {
+  background-color: #f5f7fa;
+}
+
+/* Tag description tooltip - only for buttons inside tag-buttons-container */
+.tag-button:hover::after,
+.tag-buttons-container button:hover::after {
+  content: attr(data-description);
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(0, 0, 0, 0.8);
+  color: white;
+  padding: 6px 12px;
+  border-radius: 4px;
+  font-size: 12px;
+  width: 150px;
+  white-space: normal;
+  word-wrap: break-word;
+  margin-bottom: 8px;
+  z-index: 1000;
+  text-align: center;
+  pointer-events: none;
+}
+
+/* Delete button styles */
+.delete-tag {
+  color: #d32f2f !important;
+  margin-top: 4px;
+  border-top: 1px solid #f0f0f0;
+  padding-top: 14px;
+}
+
+/* Remove the old delete icon span styling */
+.delete-tag .delete-icon {
+  display: none;
+}
+
+/* Input container */
+.tag-input-container {
+  display: flex;
+  flex-direction: row;
+  gap: 8px;
+  padding-top: 4px;
+  border-top: 1px solid #eee;
+  width: 100%;
+}
+
+/* Tag text input */
+.tag-input {
+  flex: 1;
+  padding: 8px 12px;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  font-size: 14px;
+  outline: none;
+  transition: all 0.2s;
+  resize: none;
+  line-height: 1.5;
+}
+
+.tag-input:focus {
+  border-color: #0d6efd;
+  box-shadow: 0 0 0 2px rgba(13, 110, 253, 0.3);
+}
+
+/* Submit button */
+.tag-management-menu .tag-submit {
+  padding: 8px 12px;
+  background-color: #0d6efd;
+  color: white;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s;
+  box-shadow: 0 2px 4px rgba(13, 110, 253, 0.2);
+  border: none;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 36px;
+}
+
+.tag-management-menu .tag-submit:hover {
+  background-color: #0b5ed7;
+  transform: translateY(-1px);
+}
+
+/* Custom text display */
+.tag-custom-text-container {
+  margin-top: 4px;
+  margin-bottom: 4px;
+  width: 100%;
+}
+
+.tag-custom-text {
+  font-size: 12px;
+  color: #666;
+  margin-top: 4px;
+  padding: 4px 8px;
+  background: #f8f9fa;
+  border-radius: 4px;
+  word-break: break-all;
+  line-height: 1.4;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+/* Specific styles for Add Tag menu */
+.add-tag-menu {
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+}
+
+/* Custom text indicator */
+.has-custom-text::after {
+  content: '✍';
+  position: absolute;
+  bottom: -4px;
+  right: -4px;
+  font-size: 12px;
+  background: white;
+  border-radius: 50%;
+  padding: 2px;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.2);
+}
+
+/* Legacy tag menu button styles for backward compatibility */
+.tag-management-menu button[title^="Change tag to important"] {
+  color: #d32f2f;
+}
+
+.tag-management-menu button[title^="Change tag to question"] {
+  color: #1976d2;
+}
+
+.tag-management-menu button[title^="Change tag to definition"] {
+  color: #388e3c;
+}
+
+.tag-management-menu button[title="Delete tag"] {
+  color: #777;
+}
+
+/* Tag type specific colors - pulled from TAG_CONFIG */
+.tag-button[data-tag-type="important"] {
+  color: #d32f2f;
+}
+
+.tag-button[data-tag-type="question"] {
+  color: #1976d2;
+}
+
+.tag-button[data-tag-type="would-like-more-real-world-examples"] {
+  color: #388e3c;
+}
+
+.tag-button[data-tag-type="needs-clarification"] {
+  color: #f57c00;
+}
+
+.tag-button[data-tag-type="example"] {
+  color: #7b1fa2;
+}
+
+.tag-button[data-tag-type="suggestion"] {
+  color: #0288d1;
+}
+
+/* Ensure all elements in menu don't transform */
+.tag-management-menu *,
+.tag-management-menu *:hover {
+  transform: none !important;
+  transition: none !important;
+}
+
+/* Responsive tweaks for narrow menus */
+@media (max-width: 300px) {
+  .tag-button,
+  .tag-management-menu button {
+    font-size: 13px;
+    padding: 8px 10px;
+  }
+} 

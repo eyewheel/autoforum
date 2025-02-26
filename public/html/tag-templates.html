@@ -1,0 +1,49 @@
+<!-- Tag Menu Templates -->
+
+<!-- Add Tag Menu Template -->
+<template id="add-tag-menu-template">
+  <div class="tag-management-menu add-tag-menu" style="display: none;">
+    <div class="tag-buttons-container">
+      <!-- Buttons will be populated from TAG_CONFIG -->
+    </div>
+    <div class="tag-input-container" style="display: none;">
+      <textarea class="tag-input" placeholder="Enter custom text..."></textarea>
+      <button class="tag-submit">→</button>
+    </div>
+  </div>
+</template>
+
+<!-- Tag Management Menu Template -->
+<template id="tag-management-menu-template">
+  <div class="tag-management-menu tag-icon-menu" style="display: none;">
+    <div class="tag-buttons-container">
+      <!-- Buttons will be populated from TAG_CONFIG -->
+    </div>
+    <div class="tag-custom-text-container">
+      <!-- Will be populated if tag has custom text -->
+    </div>
+    <div class="tag-input-container" style="display: none;">
+      <textarea class="tag-input" placeholder="Enter custom text..."></textarea>
+      <button class="tag-submit">→</button>
+    </div>
+  </div>
+</template>
+
+<!-- Tag Button Template -->
+<template id="tag-button-template">
+  <button class="tag-button" data-tag-type="">
+    <!-- Text and attributes will be populated from TAG_CONFIG -->
+  </button>
+</template>
+
+<!-- Delete Button Template -->
+<template id="delete-button-template">
+  <button class="tag-button delete-tag" data-icon="✕">
+    Delete
+  </button>
+</template>
+
+<!-- Add Tag Button Template -->
+<template id="add-tag-button-template">
+  <button class="selection-tag-icon" id="add-tag-button" style="display: none;">+</button>
+</template> 

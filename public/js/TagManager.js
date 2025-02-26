@@ -1,5 +1,6 @@
 import { CONSTANTS } from './constants.js';
 import { DEFAULT_TAGS } from './defaultTags.js';
+import { TAG_CONFIG } from './constants.js';
 
 export class TagManager {
     constructor() {
@@ -158,5 +159,21 @@ export class TagManager {
             });
         });
         return highest;
+    }
+
+    getTagById(tagId) {
+        // Convert tagId to string to ensure consistent comparison
+        tagId = String(tagId);
+        
+        // Search through all tags in all paragraphs
+        for (const [paragraphId, tags] of this.tags.entries()) {
+            const found = tags.find(tag => String(tag.id) === tagId);
+            if (found) return found;
+        }
+        return null;
+    }
+    
+    getTagConfig(tagType) {
+        return TAG_CONFIG[tagType] || null;
     }
 }
