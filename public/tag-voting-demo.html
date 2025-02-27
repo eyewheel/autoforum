@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tag Voting Demo</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        .content-container {
+            display: flex;
+            position: relative;
+        }
+        
+        .main-content {
+            flex: 1;
+            padding-right: 50px;
+        }
+        
+        #tag-sidebar {
+            width: 50px;
+            min-width: 50px;
+            position: relative;
+        }
+        
+        .paragraph {
+            margin-bottom: 1.2em;
+            padding: 0.5em;
+            border-radius: 4px;
+            position: relative;
+        }
+        
+        .paragraph:hover {
+            background-color: #f5f5f5;
+        }
+        
+        h1, h2 {
+            margin-top: 1.5em;
+        }
+        
+        /* Templates to be cloned by JavaScript */
+        .template {
+            display: none;
+        }
+        
+        /* Tag system styles */
+        .selection-tag-icon {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background-color: white;
+            border: 1px solid #ddd;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            cursor: pointer;
+            position: absolute;
+            left: 10px;
+            font-size: 16px;
+            z-index: 10;
+            transition: transform 0.2s ease, opacity 0.2s ease;
+        }
+        
+        #add-tag-button {
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        }
+        
+        .tagged-selection {
+            border-radius: 2px;
+            padding: 0 2px;
+        }
+        
+        .tag-management-menu {
+            position: fixed;
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.2);
+            z-index: 1000;
+            padding: 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            min-width: 220px;
+        }
+        
+        .tag-buttons-container {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        
+        .reactions-container,
+        .additions-container {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+        
+        .section-title {
+            margin: 0 0 5px 0;
+            font-size: 14px;
+            font-weight: bold;
+            color: #555;
+        }
+        
+        .tag-button {
+            display: flex;
+            align-items: center;
+            padding: 6px 10px;
+            border: 1px solid #eee;
+            border-radius: 4px;
+            background-color: white;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background-color 0.2s;
+        }
+        
+        .tag-button:hover {
+            background-color: #f5f5f5;
+        }
+        
+        .tag-input-container {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        
+        .tag-input {
+            width: 100%;
+            min-height: 60px;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            resize: vertical;
+            font-family: inherit;
+        }
+        
+        .tag-submit {
+            align-self: flex-end;
+            padding: 6px 12px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        
+        .delete-tag {
+            margin-top: 10px;
+            padding: 6px 12px;
+            background-color: #f44336;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            align-self: center;
+        }
+        
+        .tag-custom-text-container {
+            padding: 8px;
+            background-color: #f9f9f9;
+            border-radius: 4px;
+            font-size: 14px;
+            margin-top: 5px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Tag Voting Demo</h1>
+    
+    <p>This page demonstrates the tag voting functionality. Try selecting text to create tags, and then vote on them.</p>
+    
+    <div class="content-container">
+        <div class="main-content">
+            <div id="content">
+                <h2>Sample Content</h2>
+                
+                <div id="para1" class="paragraph">
+                    Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nullam ac massa eget leo ullamcorper congue. 
+                    Fusce venenatis tortor id libero faucibus, vel eleifend orci fringilla. Suspendisse potenti.
+                </div>
+                
+                <div id="para2" class="paragraph">
+                    Praesent iaculis, nulla id consequat porta, sapien urna placerat turpis, ut dignissim est elit eget risus. 
+                    Nulla facilisi. Mauris finibus efficitur lorem, ut rutrum nisl finibus at. Pellentesque at justo sit amet magna laoreet porta.
+                </div>
+                
+                <div id="para3" class="paragraph">
+                    Cras vel tortor ut sem posuere hendrerit. Curabitur vehicula libero in risus aliquam, at congue nulla tempus. 
+                    Donec consectetur, velit eget lobortis faucibus, tellus sem vulputate nisi, vel egestas purus nisl et ante.
+                </div>
+                
+                <h2>Additional Information</h2>
+                
+                <div id="para4" class="paragraph">
+                    Vivamus ut lacus ac nibh sodales dapibus. Aliquam erat volutpat. Donec malesuada lacus sit amet enim dapibus, 
+                    eget feugiat nulla posuere. Morbi vel velit et odio dignissim varius. Nulla facilisi.
+                </div>
+                
+                <div id="para5" class="paragraph">
+                    Etiam ornare felis vel varius posuere. Ut ultrices turpis sed odio accumsan, vitae condimentum sem varius. 
+                    Vestibulum ante ipsum primis in faucibus orci luctus et ultrices posuere cubilia curae; Quisque dapibus nisl eget lectus congue accumsan.
+                </div>
+            </div>
+        </div>
+        
+        <div id="tag-sidebar"></div>
+    </div>
+    
+    <!-- Templates for the TagRenderer to use -->
+    <template id="add-tag-button-template" class="template">
+        <button id="add-tag-button" class="selection-tag-icon" style="display:none;">+</button>
+    </template>
+    
+    <template id="add-tag-menu-template" class="template">
+        <div class="tag-management-menu add-tag-menu" style="display:none;">
+            <div class="tag-buttons-container"></div>
+            <div class="tag-input-container" style="display:none;">
+                <textarea class="tag-input" placeholder="Enter your text here..."></textarea>
+                <button class="tag-submit">Submit</button>
+            </div>
+        </div>
+    </template>
+    
+    <template id="tag-button-template" class="template">
+        <button class="tag-button"></button>
+    </template>
+    
+    <template id="tag-management-menu-template" class="template">
+        <div class="tag-management-menu tag-icon-menu" style="display:none;">
+            <div class="tag-buttons-container"></div>
+            <div class="tag-custom-text-container"></div>
+            <div class="tag-input-container" style="display:none;">
+                <textarea class="tag-input" placeholder="Edit your text..."></textarea>
+                <button class="tag-submit">Submit</button>
+            </div>
+        </div>
+    </template>
+    
+    <template id="delete-button-template" class="template">
+        <button class="delete-tag">Delete Tag</button>
+    </template>
+    
+    <script type="module">
+        import { TagManager } from './js/TagManager.js';
+        import { TagRenderer } from './js/TagRenderer.js';
+        import { TagEvents } from './js/TagEvents.js';
+        
+        document.addEventListener('DOMContentLoaded', () => {
+            // Initialize the tag system
+            const tagManager = new TagManager();
+            const tagRenderer = new TagRenderer(tagManager);
+            const tagEvents = new TagEvents(tagManager, tagRenderer);
+            
+            // Render any existing tags
+            tagManager.getAllParagraphIds().forEach(paragraphId => {
+                tagRenderer.renderParagraph(paragraphId);
+            });
+        });
+    </script>
+</body>
+</html> 

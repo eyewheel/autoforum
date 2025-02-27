@@ -1,11 +1,21 @@
 import { TAG_CONFIG } from './constants.js';
+import { TagVoting } from './TagVoting.js';
 
 export class TagEvents {
     constructor(tagManager, tagRenderer) {
         this.tagManager = tagManager;
         this.tagRenderer = tagRenderer;
         this.currentSelection = null;
+        
+        // Initialize tag voting system
+        this.tagVoting = new TagVoting(tagManager, tagRenderer);
+        
         this.setupEventListeners();
+        
+        // Initialize voting for existing tags after a short delay to ensure DOM is ready
+        setTimeout(() => {
+            this.tagVoting.initializeTagVoting();
+        }, 500);
     }
 
     setupEventListeners() {
@@ -106,7 +116,8 @@ export class TagEvents {
     handleMouseDown(event) {
         if (!event.target.closest('.paragraph') &&
             !event.target.closest('#tag-sidebar') &&
-            !event.target.closest('.tag-management-menu')) {
+            !event.target.closest('.tag-management-menu') &&
+            !event.target.closest('.vote-tooltip')) {
             this.hideAllMenus();
             window.getSelection().removeAllRanges();
         }
@@ -177,8 +188,26 @@ export class TagEvents {
                 this.tagRenderer.renderParagraph(paragraphId);
             });
 
+        // Automatically upvote newly created tag when not in demo mode
+        if (!this.tagManager.demoMode) {
+            this.tagManager.upvoteTag(tag.id);
+        }
+
         this.hideAllMenus();
         window.getSelection().removeAllRanges();
+        
+        // Initialize voting for newly created tag with shorter timeout
+        setTimeout(() => {
+            const tagIcon = document.querySelector(`.selection-tag-icon[data-tag-id="${tag.id}"]`);
+            if (tagIcon) {
+                // Add score display
+                this.tagVoting.updateTagScore(tagIcon, tag.score);
+                
+                // Create tooltip with hover events
+                this.tagVoting.createVoteTooltip(tag.id, tagIcon);
+            }
+        }, 50); // Reduced from 200ms to 50ms for faster response
+        
         return tag;
     }
 
@@ -198,6 +227,11 @@ export class TagEvents {
 
         // Only proceed if this is not a click on the menu itself
         if (!event.target.closest('.tag-management-menu')) {
+            // Check if click is on a vote button - if so, let it be handled by TagVoting
+            if (event.target.closest('.vote-button') || event.target.closest('.vote-tooltip')) {
+                return;
+            }
+            
             // Hide all other menus first
             document.querySelectorAll('.tag-management-menu').forEach(m => {
                 if (m !== menu) m.style.display = 'none';
@@ -372,7 +406,7 @@ export class TagEvents {
             }
             
             // Check for tag management elements
-            if (element.closest('.tag-management-menu, .selection-tag-icon')) {
+            if (element.closest('.tag-management-menu, .selection-tag-icon, .vote-tooltip')) {
                 return true;
             }
             

@@ -121,3 +121,14 @@ export const CONSTANTS = {
     MIN_MARGIN: 10,
     STORAGE_KEY: 'markdownTagging_selectionTags'
 };
+
+// New constants for the voting system
+export const VOTING_CONFIG = {
+    TOOLTIP_DELAY: 0,              // Removed delay before showing vote tooltip on hover
+    TOOLTIP_HIDE_DELAY: 0,         // Removed delay before hiding vote tooltip when mouse leaves
+    UPVOTE_COLOR: '#4CAF50',      // Green for upvotes
+    DOWNVOTE_COLOR: '#F44336',    // Red for downvotes
+    NEUTRAL_COLOR: '#9E9E9E',     // Gray for no votes
+    DEMO_MODE_KEY: 'tagVoting_demoMode', // localStorage key for demo mode setting
+    VOTE_ANIMATION_DURATION: 300, // Animation duration for vote changes in ms
+};

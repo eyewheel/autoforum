@@ -7,7 +7,24 @@ export class TagManager {
         this.tags = new Map(); // paragraphId -> Tag[] (for efficient lookups during rendering)
         this.allTags = []; // Primary storage - array of all tags
         this.tagCounter = 0;
+        this.currentUser = this.getCurrentUser(); // Get or create a user ID
+        this.demoMode = false; // Default to normal mode
         this.loadFromStorage();
+    }
+
+    // Get or create a unique user ID for voting tracking
+    getCurrentUser() {
+        let userId = localStorage.getItem('tagSystem_userId');
+        if (!userId) {
+            userId = 'user_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+            localStorage.setItem('tagSystem_userId', userId);
+        }
+        return userId;
+    }
+
+    // Toggle demo mode for unlimited voting
+    toggleDemoMode(isEnabled) {
+        this.demoMode = isEnabled;
     }
 
     loadFromStorage() {
@@ -23,6 +40,16 @@ export class TagManager {
                 if (Array.isArray(parsed)) {
                     // New format - direct tag storage
                     this.allTags = parsed;
+
+                    // Ensure all tags have score and voters properties
+                    this.allTags.forEach(tag => {
+                        if (typeof tag.score === 'undefined') {
+                            tag.score = 0;
+                        }
+                        if (!tag.voters) {
+                            tag.voters = {};
+                        }
+                    });
                 } else {
                     // Old format - convert from paragraph-based to direct tag storage
                     console.log("Converting from old storage format...");
@@ -32,6 +59,13 @@ export class TagManager {
                     Object.entries(parsed).forEach(([paragraphId, tags]) => {
                         tags.forEach(tag => {
                             if (!uniqueTags.has(tag.id)) {
+                                // Add score and voters if not present
+                                if (typeof tag.score === 'undefined') {
+                                    tag.score = 0;
+                                }
+                                if (!tag.voters) {
+                                    tag.voters = {};
+                                }
                                 uniqueTags.set(tag.id, tag);
                             }
                         });
@@ -55,6 +89,13 @@ export class TagManager {
                     Object.entries(defaultTags).forEach(([paragraphId, tags]) => {
                         tags.forEach(tag => {
                             if (!uniqueTags.has(tag.id)) {
+                                // Add score and voters if not present
+                                if (typeof tag.score === 'undefined') {
+                                    tag.score = 0;
+                                }
+                                if (!tag.voters) {
+                                    tag.voters = {};
+                                }
                                 uniqueTags.set(tag.id, tag);
                             }
                         });
@@ -126,7 +167,9 @@ export class TagManager {
             id: tagId,
             tagType,
             selections: Array.isArray(selection) ? selection : [selection],
-            customText: text
+            customText: text,
+            score: 0,             // Initialize score to 0
+            voters: {}            // Initialize empty voters object
         };
 
         // Add to primary storage
@@ -232,5 +275,92 @@ export class TagManager {
     
     getTagConfig(tagType) {
         return TAG_CONFIG[tagType] || null;
+    }
+
+    // NEW METHODS FOR TAG SCORING
+
+    // Vote up on a tag
+    upvoteTag(tagId) {
+        const tag = this.getTagById(tagId);
+        if (!tag) return false;
+
+        const userId = this.currentUser;
+        const currentVote = tag.voters[userId] || 0;
+
+        // If already upvoted, remove the vote (toggle off)
+        if (currentVote === 1) {
+            tag.score -= 1;
+            delete tag.voters[userId];
+        } 
+        // If downvoted, change to upvote (2 point swing)
+        else if (currentVote === -1) {
+            tag.score += 2;
+            tag.voters[userId] = 1;
+        } 
+        // If no vote, add upvote
+        else {
+            tag.score += 1;
+            tag.voters[userId] = 1;
+        }
+
+        this.saveToStorage();
+        return tag.score;
+    }
+
+    // Vote down on a tag
+    downvoteTag(tagId) {
+        const tag = this.getTagById(tagId);
+        if (!tag) return false;
+
+        const userId = this.currentUser;
+        const currentVote = tag.voters[userId] || 0;
+
+        // If already downvoted, remove the vote (toggle off)
+        if (currentVote === -1) {
+            tag.score += 1;
+            delete tag.voters[userId];
+        } 
+        // If upvoted, change to downvote (2 point swing)
+        else if (currentVote === 1) {
+            tag.score -= 2;
+            tag.voters[userId] = -1;
+        } 
+        // If no vote, add downvote
+        else {
+            tag.score -= 1;
+            tag.voters[userId] = -1;
+        }
+
+        this.saveToStorage();
+        return tag.score;
+    }
+
+    // Get current user's vote on a tag
+    getUserVoteForTag(tagId) {
+        const tag = this.getTagById(tagId);
+        if (!tag) return 0;
+        return tag.voters[this.currentUser] || 0;
+    }
+
+    // Demo mode voting (simulates multiple users)
+    demoVote(tagId, isUpvote) {
+        if (!this.demoMode) return false;
+        
+        const tag = this.getTagById(tagId);
+        if (!tag) return false;
+
+        // Generate a random user ID for the demo vote
+        const demoUserId = 'demo_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5);
+        
+        if (isUpvote) {
+            tag.score += 1;
+            tag.voters[demoUserId] = 1;
+        } else {
+            tag.score -= 1;
+            tag.voters[demoUserId] = -1;
+        }
+
+        this.saveToStorage();
+        return tag.score;
     }
 }
