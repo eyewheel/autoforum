@@ -20,7 +20,11 @@ ${content}
 User's personalization preferences:
 ${preferences}
 
-Important: Provide the personalized content in markdown format. Use regular markdown headings (#, ##) and paragraphs. Do not wrap the response in code blocks or use any special formatting - just plain markdown text with basic headings and paragraphs.`;
+Important: 
+1. If the preferences mention any tag voting scores, prioritize changes that align with highly upvoted tags.
+2. Negative vote scores indicate content that users disagreed with, so consider treating these aspects with more caution.
+3. Provide the personalized content in markdown format. Use regular markdown headings (#, ##) and paragraphs. 
+4. Do not wrap the response in code blocks or use any special formatting - just plain markdown text with basic headings and paragraphs.`;
 
     try {
         const response = await fetch('/api/ask-openrouter', {

@@ -34,7 +34,8 @@ export class ContributionProcessor {
                                 text: s.selectedText,
                                 startOffset: s.startOffset,
                                 endOffset: s.endOffset
-                            }))
+                            })),
+                        score: tag.score || 0 // Include the voting score
                     }))
                 });
             }
@@ -135,12 +136,12 @@ export class ContributionProcessor {
             // Format reactions
             const reactionsText = reactionTags.length > 0 ? 
                 `Reactions: ${reactionTags.map(tag => `
-  - One reader reacted with "${TAG_CONFIG[tag.type]?.displayName || tag.type}" to ${tag.selections.length > 0 ? `"${tag.selections[0].text}"` : 'this paragraph'}`).join('\n')}` : '';
+  - One reader reacted with "${TAG_CONFIG[tag.type]?.displayName || tag.type}" to ${tag.selections.length > 0 ? `"${tag.selections[0].text}"` : 'this paragraph'}${tag.score !== 0 ? ` (Vote score: ${tag.score > 0 ? '+' + tag.score : tag.score})` : ''}`).join('\n')}` : '';
                 
             // Format additions
             const additionsText = additionTags.length > 0 ? 
                 `Additions: ${additionTags.map(tag => `
-  - Type: ${TAG_CONFIG[tag.type]?.displayName || tag.type}${tag.customText ? `
+  - Type: ${TAG_CONFIG[tag.type]?.displayName || tag.type}${tag.score !== 0 ? ` (Vote score: ${tag.score > 0 ? '+' + tag.score : tag.score})` : ''}${tag.customText ? `
   - Custom Note: "${tag.customText}"` : ''}
   - Selections: ${tag.selections.map(s => `"${s.text}"`).join(', ')}`).join('\n')}` : '';
             
@@ -163,12 +164,14 @@ ${paragraphsInfo}
 Instructions for handling different types of feedback:
 1. For REACTIONS (like Agree, Disagree, Insightful, Confusing, etc.):
    - Consider these as reader feedback
+   - Tags with higher vote scores (e.g., +3, +5) should be given more weight than those with lower or negative scores
    - If multiple readers reacted the same way, consider it stronger feedback
    - Only modify paragraphs if you believe the reactions justify changes
    - If no changes are needed, return the original paragraph text exactly
 
 2. For ADDITIONS (like Source, Counterpoint, Example, Clarification):
    - These represent specific content that readers want incorporated
+   - Prioritize additions with higher vote scores
    - Always incorporate these additions in a natural way
    - Maintain the paragraph's original meaning while enhancing it with the additions
 
