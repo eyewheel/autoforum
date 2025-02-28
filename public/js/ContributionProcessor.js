@@ -55,7 +55,7 @@ export class ContributionProcessor {
         // Step 1: Create initial groups of paragraphs that share multi-paragraph tags
         const multiParagraphTags = this.tagManager.getMultiParagraphTags();
         const groups = [];
-        
+
         // Start with one group per paragraph
         const paragraphToGroup = new Map();
         for (const paragraphId of taggedParagraphs.keys()) {
@@ -85,7 +85,7 @@ export class ContributionProcessor {
             // Merge all groups into the first one
             const groupsArray = Array.from(groupsToMerge);
             const targetGroup = groupsArray[0];
-            
+
             for (let i = 1; i < groupsArray.length; i++) {
                 const sourceGroup = groupsArray[i];
                 // Add all paragraphs from source to target
@@ -110,7 +110,7 @@ export class ContributionProcessor {
                     ...taggedParagraphs.get(id)
                 };
             });
-            
+
             return {
                 paragraphIds,
                 paragraphs
@@ -126,31 +126,33 @@ export class ContributionProcessor {
     async getAIContribution(group) {
         // Extract full text of the paragraph group
         const fullText = group.paragraphs.map(p => p.text).join('\n\n');
-        
+
         // Format paragraph information for the AI with different handling for reactions vs additions
         const paragraphsInfo = group.paragraphs.map(p => {
             // Separate tags into reactions and additions
             const reactionTags = p.tags.filter(tag => !tag.requiresCustomText);
             const additionTags = p.tags.filter(tag => tag.requiresCustomText);
-            
+
             // Format reactions
-            const reactionsText = reactionTags.length > 0 ? 
+            const reactionsText = reactionTags.length > 0 ?
                 `Reactions: ${reactionTags.map(tag => `
-  - One reader reacted with "${TAG_CONFIG[tag.type]?.displayName || tag.type}" to ${tag.selections.length > 0 ? `"${tag.selections[0].text}"` : 'this paragraph'}${tag.score !== 0 ? ` (Vote score: ${tag.score > 0 ? '+' + tag.score : tag.score})` : ''}`).join('\n')}` : '';
-                
+  - One reader reacted with "${TAG_CONFIG[tag.type]?.displayName || tag.type}" to ${tag.selections.length > 0 ? `"${tag.selections[0].text}"` : 'this paragraph'} ${TAG_CONFIG[tag.type]?.aiHint}. ${tag.score !== 0 ? ` (Vote score: ${tag.score > 0 ? '+' + tag.score : tag.score})` : ''}`).join('\n')}` : '';
+
             // Format additions
-            const additionsText = additionTags.length > 0 ? 
+            const additionsText = additionTags.length > 0 ?
                 `Additions: ${additionTags.map(tag => `
-  - Type: ${TAG_CONFIG[tag.type]?.displayName || tag.type}${tag.score !== 0 ? ` (Vote score: ${tag.score > 0 ? '+' + tag.score : tag.score})` : ''}${tag.customText ? `
+  - Type: ${TAG_CONFIG[tag.type]?.displayName || tag.type}. ${TAG_CONFIG[tag.type]?.aiHint}. ${tag.score !== 0 ? ` (Vote score: ${tag.score > 0 ? '+' + tag.score : tag.score})` : ''}${tag.customText ? `
   - Custom Note: "${tag.customText}"` : ''}
   - Selections: ${tag.selections.map(s => `"${s.text}"`).join(', ')}`).join('\n')}` : '';
-            
+
             return `
 Paragraph ${p.id}:
 Text: ${p.text}
 ${reactionsText}
 ${additionsText}`;
         }).join('\n');
+
+        console.log(paragraphsInfo);
 
         // Construct the prompt with guidance on how to handle reactions vs additions
         const prompt = `You are an expert in content improvement. Your task is to improve specific paragraphs based on user tags.
@@ -223,11 +225,11 @@ Do not add any explanations, preambles, or additional content - just return the 
      */
     async processContributions(groups) {
         const results = [];
-        
+
         for (const group of groups) {
             try {
                 const aiResponse = await this.getAIContribution(group);
-                
+
                 results.push({
                     group,
                     content: aiResponse
@@ -237,7 +239,7 @@ Do not add any explanations, preambles, or additional content - just return the 
                 throw error;
             }
         }
-        
+
         return results;
     }
 
@@ -248,17 +250,17 @@ Do not add any explanations, preambles, or additional content - just return the 
     async contribute() {
         // Collect all paragraphs with tags
         const taggedParagraphs = this.collectTaggedParagraphs();
-        
+
         if (taggedParagraphs.size === 0) {
             throw new Error('No tagged paragraphs found');
         }
-        
+
         // Form paragraph groups based on tag relationships
         const groups = this.formParagraphGroups(taggedParagraphs);
-        
+
         // Process each group and get AI contributions
         const results = await this.processContributions(groups);
-        
+
         // Combine all results into a single document
         return this.combineResults(results);
     }
@@ -272,14 +274,14 @@ Do not add any explanations, preambles, or additional content - just return the 
         // Get the current content
         const contentContainer = document.getElementById('content');
         const contentClone = contentContainer.cloneNode(true);
-        
+
         // Replace each paragraph with its AI-improved version
         results.forEach(result => {
             const { group, content } = result;
-            
+
             // Split the AI response into paragraphs
             const improvedParagraphs = content.split('\n\n');
-            
+
             // Make sure we have the right number of paragraphs
             if (improvedParagraphs.length === group.paragraphs.length) {
                 // Replace each paragraph
@@ -293,16 +295,16 @@ Do not add any explanations, preambles, or additional content - just return the 
                     }
                 });
             } else {
-                console.error('AI response paragraph count mismatch:', 
+                console.error('AI response paragraph count mismatch:',
                     {expected: group.paragraphs.length, received: improvedParagraphs.length});
             }
         });
-        
+
         // Create a proper markdown document that preserves the order of everything
         const markdownOutput = this.convertToMarkdown(contentClone);
         return markdownOutput;
     }
-    
+
     /**
      * Converts HTML content to properly formatted markdown
      * @param {HTMLElement} container The HTML container element
@@ -311,10 +313,10 @@ Do not add any explanations, preambles, or additional content - just return the 
     convertToMarkdown(container) {
         // Get all content elements in correct order
         const allElements = this.getAllContentElements(container);
-        
+
         // Create markdown output with proper structure
         let markdownOutput = '';
-        
+
         for (const element of allElements) {
             if (element.tagName.match(/^H[1-6]$/)) {
                 // Headers - ensure a blank line before for proper separation
@@ -327,10 +329,10 @@ Do not add any explanations, preambles, or additional content - just return the 
                 markdownOutput += `${element.textContent.trim()} \n\n`;
             }
         }
-        
+
         return markdownOutput.trim();
     }
-    
+
     /**
      * Gets all content elements in document order
      * @param {HTMLElement} container The container element
@@ -340,7 +342,7 @@ Do not add any explanations, preambles, or additional content - just return the 
         // Get all headings and paragraphs in the correct order
         const elements = [];
         const selector = 'h1, h2, h3, h4, h5, h6, .paragraph';
-        
+
         // Use TreeWalker to get elements in document order
         const walker = document.createTreeWalker(
             container,
@@ -354,13 +356,13 @@ Do not add any explanations, preambles, or additional content - just return the 
                 }
             }
         );
-        
+
         let currentNode = walker.currentNode;
-        
+
         while (currentNode = walker.nextNode()) {
             elements.push(currentNode);
         }
-        
+
         return elements;
     }
-} 
+}
