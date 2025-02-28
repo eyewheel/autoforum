@@ -27,7 +27,7 @@ renderer.paragraph = (token) => {
     const id = `p-${paragraphCounter++}`;
     const content = typeof token === 'object' ? token.text : token;
     return `<div class="paragraph" id="${id}">
-              ${content}
+              ${marked.parseInline(content)}
             </div>`;
 };
 
@@ -90,7 +90,7 @@ app.get('/api/content/:filename', async (req, res) => {
             // Ensure proper line breaks for markdown
             markdownContent = markdownContent.replace(/\r\n/g, '\n').trim();
         }
-        
+
         // console.log('Pre-parse markdown content:', markdownContent);
 
         // If the file uses the old format, extract the default section
@@ -168,7 +168,7 @@ app.get('/:filename', async (req, res) => {
 
         const htmlContent = await parser.parse(markdownContent);
         const template = await fs.readFile(path.join(__dirname, 'views', 'template.html'), 'utf8');
-        
+
         // Inject content and version information into template
         const fullHtml = template
             .replace('{{title}}', filename)
