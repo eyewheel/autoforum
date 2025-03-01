@@ -24,3 +24,7 @@ Are there improvements you would like to make to one of these paragraphs? Do you
 The more users agree with a suggestion, the more that suggestion will be taken into account. The "demo mode" allows you to simulate how the AI will make edits if a large number of users supports a suggestion, by adding multiple responses.
 
 ## Where do you plan to go with this?
+
+The current version of the interface still relies on a lot of formalizations - we have a specific set of reactions available, even taking custom text options into account, which might not match up with the improvements users would like to make. We'd like to develop a system to express wishes for improvement more fluidly.
+
+This is currently a demo with some options for very preliminary simulation of multiple users - we haven't tested this for actual collaboration between multiple users yet, which will likely reveal a lot about how well the design holds up.
