@@ -1,4 +1,4 @@
-# autoforum/README.md
+# AutoForum: Collaborative Knowledge Enhancement
 
 ## What is live theory?
 
@@ -9,22 +9,31 @@ AI is currently at this stage. We have access to much more capabilities than we'
 
 ## What is this project?
 
-This project is an experiment in AI-assisted collaboration and wiki/forum-like structures. We were inspired by Sofi van Hanen's [autoblog](https://github.com/sofvanh/autoblog), which provides a little more background context. Readers of an article might have quick, informal thoughts about ways the article could be improved - thoughts that currently might be best expressed with Wikipedia's \[citation needed\] or \[clarify\] tags. However, even on Wikipedia, those tags are dependent on another user coming by and putting in the grunt work to hunt down references or rephrase sentences. What if readers could express those "wishes" and vague unformed suggestions for improvement, and improvements would automatically be made along those lines?
+AutoForum is an experiment in AI-assisted collaboration and wiki/forum-like structures. We were inspired by Sofi van Hanen's [autoblog](https://github.com/sofvanh/autoblog), which provides additional background context. 
 
-## How does all this work?
+Current online discussions and knowledge platforms have a fundamental limitation: they rely on explicit user actions to improve content. On platforms like Wikipedia, tags like [citation needed] or [clarify] require another human to manually hunt down references or rephrase sentences. On forums like LessWrong or Reddit, feedback is limited to comments and votes, which don't directly improve the original content.
 
-Let's take a look at some short paragraphs.
+Our vision is to create a system where readers can easily express reactions and suggestions through a simple tagging interface, and AI agents process these tags to automatically improve the content. This allows the collective intelligence of the community to directly enhance the quality of information, while also enabling content to adapt to individual preferences through personalization.
+
+## Examples
+
+Let's explore a couple of sample paragraphs that demonstrate how tagging might work:
+
+### Example 1
 
 Nuclear fission was discovered in December 1938 by some German chemists and physicists. Fission is a type of nuclear reaction or radioactive decay process. The fission process often releases a large amount of energy. Scientists already knew about alpha decay and beta decay, but fission was very important for other reasons.
 
+### Example 2
+
 NumPy is a very important Python library, which is necessary for many scientific applications which rely on its features. It allows certain computations to be run in C, which allows them to be run much faster as C is a lower-level language. C was developed in the 1970s by Dennis Richie but is still used in many applications today. NumPy was first developed in the 1990s in order to offer an open-source competitor for the proprietary software MATLAB.
 
-Are there improvements you would like to make to one of these paragraphs? Do you see mistakes? Select the text, and options will pop up to suggest improvements. Then hit the "contribute" button in the left-hand sidebar, and the AI will make edits based on your suggestions.
+## Future Development
 
-The more users agree with a suggestion, the more that suggestion will be taken into account. The "demo mode" allows you to simulate how the AI will make edits if a large number of users supports a suggestion, by adding multiple responses.
+While our current demo focuses on showing the core concept, we're exploring several key areas for future development:
 
-## Where do you plan to go with this?
+- Author moderation options to control how much community input is incorporated
+- More intuitive ways to express improvement suggestions
+- Better AI understanding of community consensus 
+- Testing with actual multi-user collaborations
 
-The current version of the interface still relies on a lot of formalizations - we have a specific set of reactions available, even taking custom text options into account, which might not match up with the improvements users would like to make. We'd like to develop a system to express wishes for improvement more fluidly.
-
-This is currently a demo with some options for very preliminary simulation of multiple users - we haven't tested this for actual collaboration between multiple users yet, which will likely reveal a lot about how well the design holds up.
+We believe this approach can significantly improve how communities collectively build and refine knowledge online, making collaborative content creation more efficient and effective.
