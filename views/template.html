@@ -10,14 +10,19 @@
     <script src="/js/main.js" type="module" defer></script>
 </head>
 <body>
-    <div id="content">
-        {{content}}
-    </div>
-    <div id="tag-sidebar">
-        <!-- Tag icons will be placed here by JavaScript -->
+    <div class="page-wrapper">
+        <div id="content">
+            {{content}}
+        </div>
+        <div id="tag-sidebar">
+            <!-- Tag icons will be placed here by JavaScript -->
+        </div>
+        
+        <!-- Templates will be loaded by main.js -->
+        <div id="tag-templates-container"></div>
     </div>
     
-    <!-- Templates will be loaded by main.js -->
-    <div id="tag-templates-container"></div>
+    <!-- Extra scrolling space -->
+    <div class="scroll-space"></div>
 </body>
 </html>
