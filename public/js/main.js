@@ -1,4 +1,3 @@
-import { TagManager } from './TagManager.js';
 import { TagRenderer } from './TagRenderer.js';
 import { TagEvents } from './TagEvents.js';
 import { Sidebar } from './Sidebar.js';
@@ -33,59 +32,98 @@ function loadTemplates() {
     });
 }
 
-// Function to initialize tags
+// Function to initialize/re-initialize tag rendering and events
+// This is called by ContentManager after new content is rendered.
 window.initializeTags = () => {
-    // First, ensure templates are loaded
+    console.log('Initializing tags...');
+    // Ensure tagManager instance exists (created by Sidebar)
+    if (!window.tagManager) {
+        console.error('TagManager instance not found. Tags cannot be initialized.');
+        return;
+    }
+
+    // Ensure templates are loaded first
     loadTemplates()
         .then(() => {
-            // Initialize paragraphs with original text
+            console.log('Templates loaded, proceeding with tag initialization.');
+            // Add/update original text dataset on paragraphs
+            // This should run *after* new content is placed in the DOM
             document.querySelectorAll('.paragraph').forEach(paragraph => {
-                paragraph.dataset.originalText = paragraph.textContent;
+                if (!paragraph.dataset.originalText) { // Only set if not already set
+                     paragraph.dataset.originalText = paragraph.textContent;
+                }
             });
 
-            // Only create tag management instances if they don't exist and we're not in personalization mode
-            if (!window.tagManager && (!window.contentVersion || !window.contentVersion.hasPersonalization)) {
-                window.tagManager = new TagManager();
+            // Instantiate Renderer and Events if they don't exist or need re-creation
+            // Using global scope for now, similar to tagManager
+            if (!window.tagRenderer) {
+                console.log('Creating TagRenderer instance.');
                 window.tagRenderer = new TagRenderer(window.tagManager);
+            }
+            if (!window.tagEvents) {
+                 console.log('Creating TagEvents instance.');
                 window.tagEvents = new TagEvents(window.tagManager, window.tagRenderer);
+            } else {
+                // If TagEvents exists, maybe it needs to re-attach listeners if the DOM changed significantly?
+                // For now, assume TagEvents handles this internally or it's not needed.
+            }
 
-                // Render existing tags
-                window.tagManager.getAllParagraphIds().forEach(paragraphId => {
+            // Clear existing tag visuals before rendering new ones
+            // TODO: Implement clearTags method in TagRenderer if needed
+             // window.tagRenderer.clearTags();
+
+            // Re-render tags for all relevant paragraphs based on the current TagManager state
+             console.log(`Rendering tags for ${window.tagManager.getAllParagraphIds().length} paragraphs.`);
+             window.tagManager.getAllParagraphIds().forEach(paragraphId => {
+                // Check if paragraph element actually exists in the current DOM
+                if (document.getElementById(paragraphId)) {
                     window.tagRenderer.renderParagraph(paragraphId);
-                });
-            } else if (window.contentVersion && window.contentVersion.hasPersonalization) {
-                // Hide tag sidebar in personalization mode
+                } else {
+                    console.warn(`Paragraph element ${paragraphId} not found in DOM, skipping tag render.`);
+                }
+            });
+
+            // Hide tag sidebar if needed (This logic might better belong in Sidebar/ContentManager based on state)
+            // Let's remove this check here, Sidebar/ContentManager should handle UI visibility.
+            /*
+            const sidebarState = window.tagManager.stateManager.getSidebarState(); // Access stateManager via tagManager
+            if (sidebarState.personalization || sidebarState.contributions) {
                 const tagSidebar = document.getElementById('tag-sidebar');
                 if (tagSidebar) {
-                    tagSidebar.style.display = 'none';
+                    // tagSidebar.style.display = 'none';
+                     console.log("Hiding tag sidebar in non-default mode.");
                 }
             }
+            */
+
+             console.log('Tag initialization complete.');
         })
         .catch(error => {
             console.error('Failed to initialize tag system:', error);
         });
 };
 
-// Add this code to handle the home page content
-if (window.isHomePage) {
-    // Prevent content from being replaced on the home page
-    document.addEventListener('DOMContentLoaded', () => {
-        // Initialize sidebar only
-        import('./Sidebar.js').then(module => {
-            const Sidebar = module.Sidebar;
-            new Sidebar();
-        });
-    });
-} else {
-    // Regular page initialization with content loading
-    document.addEventListener('DOMContentLoaded', () => {
-        // Initialize navigation sidebar
-        const sidebar = new Sidebar();
-        
-        // Initialize popup manager after sidebar
-        const popupManager = new PopupManager();
-        
-        // Initialize tags
-        window.initializeTags();
-    });
-}
+// --- Main Initialization --- //
+
+document.addEventListener('DOMContentLoaded', () => {
+    // Check if we are on the home page (e.g., defined in the HTML template)
+    if (window.isHomePage) {
+        console.log('Home page detected, initializing sidebar only.');
+        // Initialize sidebar only, which won't trigger content loading
+        new Sidebar();
+        // No need to initialize popups or tags on home page
+    } else {
+        console.log('Regular page detected, initializing full system.');
+        // Initialize Sidebar, which now also initializes StateManager, TagManager,
+        // ContributionProcessor, and ContentManager.
+        // ContentManager.updateContent() will be called by the Sidebar constructor,
+        // which in turn calls window.initializeTags() upon completion.
+        new Sidebar();
+
+        // Initialize popup manager (independent of sidebar content loading)
+        new PopupManager();
+
+        // Removed the explicit call to window.initializeTags() here,
+        // as it's now triggered by ContentManager after content loads.
+    }
+});

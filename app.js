@@ -1,54 +1,83 @@
 // app.js
-require('dotenv').config(); // Load environment variables from .env file
+require('dotenv').config();
 const express = require('express');
 const marked = require('marked');
 const fs = require('fs').promises;
 const path = require('path');
-const { generateText } = require("ai"); // Import generateText from 'ai'
-const { createOpenRouter } = require('@openrouter/ai-sdk-provider'); // Import createOpenRouter
+const { generateText } = require("ai");
+const { createOpenRouter } = require('@openrouter/ai-sdk-provider');
 
 const app = express();
 const port = 3000;
 
-// Initialize OpenRouter client with API key from environment variables
 const openrouter = createOpenRouter({
-    apiKey: process.env.OPENROUTER_API_KEY, // Securely load API key from .env
+    apiKey: process.env.OPENROUTER_API_KEY,
 });
 
-// Middleware to serve static files
 app.use(express.static('public'));
-app.use(express.json()); // Middleware to parse JSON request bodies
+app.use(express.json());
 
-// Custom renderer to wrap paragraphs
-const renderer = new marked.Renderer();
+// --- Marked Configuration --- //
+// Keep track of paragraph IDs per request
+// We need a middleware or a way to reset this per request if we rely on a global counter.
+// For simplicity now, let's reset it in the parse route.
+// TODO: Improve paragraph ID generation to be stable across requests/renders.
 let paragraphCounter = 0;
 
+const renderer = new marked.Renderer();
 renderer.paragraph = (token) => {
+    // Extract text content correctly, whether input is string or token object
+    const text = typeof token === 'object' && token.text ? token.text : token;
+    // Add a check to ensure we actually have a string before parsing
+    if (typeof text !== 'string') {
+        console.error("Unexpected non-string input to paragraph renderer:", token);
+        // Return an empty div or placeholder to avoid crashing
+        return '<div>[Error rendering paragraph]</div>\n';
+    }
     const id = `p-${paragraphCounter++}`;
-    const content = typeof token === 'object' ? token.text : token;
-    return `<div class="paragraph" id="${id}">
-              ${marked.parseInline(content)}
-            </div>`;
+    return `<div class="paragraph" id="${id}">${marked.parseInline(text)}</div>\n`;
 };
 
-// Configure marked options with more explicit markdown handling
 const options = {
-    gfm: true, // GitHub flavored markdown
-    breaks: true, // Add <br> on single line breaks
+    gfm: true,
+    breaks: true,
     headerIds: true,
     mangle: false,
     renderer: renderer,
     xhtml: true,
     headerPrefix: 'section-',
-    pedantic: false, // Don't be too strict with markdown spec
-    smartLists: true, // Use smarter list behavior
-    smartypants: true // Use "smart" typographic punctuation
+    pedantic: false,
+    smartLists: true,
+    smartypants: false, // Changed to false to avoid potential issues with quotes/dashes in AI content
 };
+marked.setOptions(options);
 
-// Create new marked instance with options
-const parser = new marked.Marked(options);
+// --- Helper Function to Read Content File --- //
+async function readMarkdownFile(filename) {
+    const markdownPath = path.join(__dirname, 'content', `${filename}.md`);
+    try {
+        let markdownContent = await fs.readFile(markdownPath, 'utf8');
+        markdownContent = markdownContent.trim();
+        // Handle old format with DEFAULT section
+        if (markdownContent.includes('<!-- DEFAULT START -->')) {
+            const defaultSection = markdownContent.match(/<!-- DEFAULT START -->([\s\S]*?)<!-- DEFAULT END -->/);
+            if (defaultSection) {
+                markdownContent = defaultSection[1].trim();
+            }
+        }
+        return markdownContent;
+    } catch (error) {
+        if (error.code === 'ENOENT') {
+            throw new Error('File not found'); // Throw specific error type?
+        } else {
+            throw error; // Re-throw other errors
+        }
+    }
+}
 
-// Root route to serve index.html
+// --- Routes --- //
+
+// Root route: Serve index.html
 app.get('/', async (req, res) => {
     try {
         const indexPath = path.join(__dirname, 'public', 'index.html');
@@ -59,143 +88,97 @@ app.get('/', async (req, res) => {
     }
 });
 
-// API endpoint to get just the content
+// API: Get content (raw or parsed)
 app.get('/api/content/:filename', async (req, res) => {
+    const filename = req.params.filename;
+    const raw = req.query.raw === 'true'; // Check for ?raw=true
+
     try {
-        const filename = req.params.filename;
-        const markdownPath = path.join(__dirname, 'content', `${filename}.md`);
+        const markdownContent = await readMarkdownFile(filename);
 
-        paragraphCounter = 0; // Reset paragraph counter
-
-        let markdownContent = await fs.readFile(markdownPath, 'utf8');
-
-        // Get the raw markdown content
-        markdownContent = markdownContent.trim();
-
-        // Debug request parameters
-        // console.log('Request query:', req.query);
-        // console.log('Current markdown content:', markdownContent);
-
-        // Handle personalization or contributions
-        if (req.query.personalization === '1' && req.query.customContent) {
-            // console.log('Using personalized content');
-            markdownContent = decodeURIComponent(req.query.customContent);
-            // console.log('Raw personalized content:', markdownContent);
-            // Ensure proper line breaks for markdown
-            markdownContent = markdownContent.replace(/\r\n/g, '\n').trim();
-        } else if (req.query.contributions === '1' && req.query.customContent) {
-            // console.log('Using contributed content');
-            markdownContent = decodeURIComponent(req.query.customContent);
-            // console.log('Raw contributed content:', markdownContent);
-            // Ensure proper line breaks for markdown
-            markdownContent = markdownContent.replace(/\r\n/g, '\n').trim();
+        if (raw) {
+            // Return raw markdown content
+            res.json({ rawMarkdown: markdownContent });
+        } else {
+            // DEPRECATED: This route should ideally only return raw markdown now.
+            // The client should use the /api/parse-markdown endpoint.
+            // Keeping the parsing logic here temporarily for backward compatibility if needed,
+            // but prefer switching the client fully.
+            console.warn("Deprecated usage of /api/content/:filename for parsed HTML. Use /api/parse-markdown instead.");
+            paragraphCounter = 0; // Reset counter for parsing
+            const htmlContent = await marked.parse(markdownContent);
+            const formattedHtml = htmlContent.replace(/<\/div>/g, '</div>\n'); // Basic formatting
+            res.json({
+                content: formattedHtml, // Original response field
+                title: filename
+            });
         }
-
-        // console.log('Pre-parse markdown content:', markdownContent);
-
-        // If the file uses the old format, extract the default section
-        if (markdownContent.includes('<!-- DEFAULT START -->')) {
-            const defaultSection = markdownContent.match(/<!-- DEFAULT START -->([\s\S]*?)<!-- DEFAULT END -->/);
-            if (defaultSection) {
-                markdownContent = defaultSection[1].trim();
-            }
-        }
-
-        // console.log('About to parse markdown content:', markdownContent);
-        const htmlContent = await parser.parse(markdownContent);
-        // console.log('Generated HTML content:', htmlContent);
-
-        // Format the HTML content for better readability in the response
-        const formattedHtml = htmlContent
-            .replace(/<div class="paragraph"/g, '\n<div class="paragraph"')
-            .replace(/<\/div>/g, '</div>\n');
-
-        res.json({
-            content: formattedHtml,
-            title: filename
-        });
     } catch (error) {
-        if (error.code === 'ENOENT') {
+        if (error.message === 'File not found') {
             res.status(404).json({ error: 'File not found' });
         } else {
-            console.error('Error:', error);
-            res.status(500).json({ error: 'Server error' });
+            console.error(`Error processing /api/content/${filename}:`, error);
+            res.status(500).json({ error: 'Server error processing content' });
         }
     }
 });
 
-// API endpoint to list available pages
+// API: Parse Markdown to HTML
+app.post('/api/parse-markdown', async (req, res) => {
+    const { markdown } = req.body;
+
+    if (typeof markdown !== 'string') {
+        return res.status(400).json({ error: 'Request body must contain a "markdown" string property.' });
+    }
+
+    try {
+        paragraphCounter = 0; // Reset counter before each parse
+        const html = await marked.parse(markdown);
+        // Optionally format further if needed
+        // const formattedHtml = html.replace(/<\/div>/g, '</div>\n');
+        res.json({ html: html });
+    } catch (error) { // Catch errors during parsing
+        console.error("Markdown parsing error:", error);
+        res.status(500).json({ error: "Failed to parse markdown" });
+    }
+});
+
+// API: List available pages
 app.get('/api/pages', async (req, res) => {
     try {
         const contentDir = path.join(__dirname, 'content');
         const files = await fs.readdir(contentDir);
-        const markdownFiles = files.filter(file => file.endsWith('.md'));
-        const pageNames = markdownFiles.map(file => file.replace('.md', ''));
-        res.json(pageNames);
+        const markdownFiles = files
+            .filter(file => file.endsWith('.md'))
+            .map(file => file.replace('.md', ''));
+        res.json(markdownFiles);
     } catch (error) {
         console.error('Error listing pages:', error);
         res.status(500).json({ error: 'Failed to list pages' });
     }
 });
 
-// Route to serve markdown files
-app.get('/:filename', async (req, res) => {
+// Page route: Serve the main HTML template (content is loaded client-side)
+// This route might become simpler or unnecessary if everything is loaded via client-side JS
+app.get('/:filename', async (req, res, next) => {
+    // Check if filename looks like a file extension (e.g. .js, .css) to avoid catching asset requests
+    if (path.extname(req.params.filename)) {
+        return next(); // Pass to static middleware or 404
+    }
+    // Serve the main template for any other path, client-side routing handles the rest
     try {
-        const filename = req.params.filename;
-        const markdownPath = path.join(__dirname, 'content', `${filename}.md`);
-
-        paragraphCounter = 0; // Reset paragraph counter for each file
-
-        // Get the raw markdown content
-        let markdownContent = await fs.readFile(markdownPath, 'utf8');
-        markdownContent = markdownContent.trim();
-
-        // Get URL parameters
-        const url = new URL(req.url, `http://${req.headers.host}`);
-        const hasPersonalization = url.searchParams.has('personalization');
-        const customContent = url.searchParams.get('customContent');
-
-        // If personalization is enabled and custom content exists, use it instead
-        if (hasPersonalization && customContent) {
-            markdownContent = decodeURIComponent(customContent);
-        } else if (markdownContent.includes('<!-- DEFAULT START -->')) {
-            // If using old format, extract default section
-            const defaultSection = markdownContent.match(/<!-- DEFAULT START -->([\s\S]*?)<!-- DEFAULT END -->/);
-            if (defaultSection) {
-                markdownContent = defaultSection[1].trim();
-            }
-        }
-
-        const htmlContent = await parser.parse(markdownContent);
-        const template = await fs.readFile(path.join(__dirname, 'views', 'template.html'), 'utf8');
-
-        // Inject content and version information into template
-        const fullHtml = template
-            .replace('{{title}}', filename)
-            .replace('{{content}}', htmlContent)
-            .replace('</head>', `
-                <script>
-                    window.contentVersion = {
-                        hasPersonalization: ${hasPersonalization}
-                    };
-                </script>
-                </head>
-            `);
-
-        res.send(fullHtml);
+        const templatePath = path.join(__dirname, 'views', 'template.html');
+        // Send the template without injecting content, client will handle it.
+        res.sendFile(templatePath);
     } catch (error) {
-        if (error.code === 'ENOENT') {
-            res.status(404).send('File not found');
-        } else {
-            console.error('Error:', error);
-            res.status(500).send('Server error');
-        }
+         console.error('Error serving template:', error);
+         res.status(500).send('Server error');
     }
 });
 
-// API endpoint to handle OpenRouter requests
+// API: Proxy requests to OpenRouter
 app.post('/api/ask-openrouter', async (req, res) => {
-    const prompt = req.body.prompt;
+    const { prompt } = req.body; // Destructure prompt from body
 
     if (!prompt) {
         return res.status(400).json({ error: "Prompt is required" });
@@ -203,16 +186,19 @@ app.post('/api/ask-openrouter', async (req, res) => {
 
     try {
         const { text } = await generateText({
-            model: openrouter.chat('google/gemini-2.0-flash-001'),
-        prompt: prompt,
+            model: openrouter.chat('google/gemini-flash-1.5'), // Using recommended flash model
+            prompt: prompt,
         });
         res.json({ response: text });
     } catch (error) {
         console.error("Error calling OpenRouter:", error);
-        res.status(500).json({ error: "Failed to get response from OpenRouter" });
+        // Attempt to parse potential API error messages
+        const errorMessage = error.response?.data?.error?.message || error.message || "Failed to get response from OpenRouter";
+        res.status(500).json({ error: errorMessage });
     }
 });
 
+// --- Server Start --- //
 app.listen(port, () => {
     console.log(`Server running at http://localhost:${port}`);
 });

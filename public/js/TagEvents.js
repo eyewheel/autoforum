@@ -70,11 +70,14 @@ export class TagEvents {
             const selection = window.getSelection();
             const selectionText = selection.toString().trim();
 
-            // Check if we're in a non-default mode
+            // Check if we're in a non-default mode - REMOVED this check
+            // Tag creation is prevented later in TagManager based on state
+            /*
             if (window.contentVersion && (window.contentVersion.hasContributions || window.contentVersion.hasPersonalization)) {
                 this.tagRenderer.addTagButton.style.display = 'none';
                 return;
             }
+            */
 
             // Clear previous selections if we have a new valid selection or no selection
             if (selection.isCollapsed || !selectionText) {

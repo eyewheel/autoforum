@@ -2,6 +2,8 @@
 // Handles the processing of user contributions with AI
 
 import { TAG_CONFIG } from './constants.js';
+// Import the AI functions needed
+import { integratePersonalizedContribution } from './ai.js';
 
 export class ContributionProcessor {
     constructor(tagManager) {
@@ -9,177 +11,69 @@ export class ContributionProcessor {
     }
 
     /**
-     * Collects all paragraphs with tags and their tag information
-     * @returns {Map} Map of paragraph IDs to their content and tags
+     * Collects all tag data directly from TagManager.
+     * This is simplified as TagManager should already hold the structured tag data.
+     * @returns {Array} Array of tag objects including type, selections, customText, score etc.
      */
-    collectTaggedParagraphs() {
-        const taggedParagraphs = new Map();
-        const paragraphs = document.querySelectorAll('.paragraph');
-
-        paragraphs.forEach(paragraph => {
-            const paragraphId = paragraph.id;
-            const tags = this.tagManager.getTagsForParagraph(paragraphId);
-
-            if (tags && tags.length > 0) {
-                taggedParagraphs.set(paragraphId, {
-                    element: paragraph,
-                    text: paragraph.dataset.originalText || paragraph.textContent,
-                    tags: tags.map(tag => ({
-                        id: tag.id,
-                        type: tag.tagType,
-                        customText: tag.customText,
-                        requiresCustomText: TAG_CONFIG[tag.tagType]?.requiresCustomText || false,
-                        selections: tag.selections.filter(s => s.paragraphId === paragraphId)
-                            .map(s => ({
-                                text: s.selectedText,
-                                startOffset: s.startOffset,
-                                endOffset: s.endOffset
-                            })),
-                        score: tag.score || 0 // Include the voting score
-                    }))
-                });
-            }
-        });
-
-        return taggedParagraphs;
+    collectTags() {
+        // Assuming TagManager has a method to get all currently active/relevant tags
+        // This needs to be implemented or adjusted in TagManager
+        return this.tagManager.getAllTags();
     }
 
     /**
-     * Forms paragraph groups based on tag relationships
-     * @param {Map} taggedParagraphs Map of paragraphs with their tags
-     * @returns {Array} Array of paragraph groups to be processed separately
+     * Processes contributions made on the standard/canonical view.
+     * This uses a simpler AI prompt focusing only on the canonical content.
+     * @param {string} canonicalContent The current canonical content.
+     * @param {Array} tags Tags collected from the standard view.
+     * @returns {Promise<string>} The updated canonical markdown content.
      */
-    formParagraphGroups(taggedParagraphs) {
-        if (taggedParagraphs.size === 0) return [];
+    async processStandardContribution(canonicalContent, tags) {
+        console.log("Processing standard contribution...");
 
-        // Step 1: Create initial groups of paragraphs that share multi-paragraph tags
-        const multiParagraphTags = this.tagManager.getMultiParagraphTags();
-        const groups = [];
-
-        // Start with one group per paragraph
-        const paragraphToGroup = new Map();
-        for (const paragraphId of taggedParagraphs.keys()) {
-            const group = new Set([paragraphId]);
-            groups.push(group);
-            paragraphToGroup.set(paragraphId, group);
+        if (!tags || tags.length === 0) {
+            console.warn("No tags provided for standard contribution.");
+            return canonicalContent; // Return original content if no tags
         }
 
-        // Merge groups that share a multi-paragraph tag
-        for (const tag of multiParagraphTags) {
-            // Get all paragraphs this tag spans
-            const paragraphIds = tag.selections.map(s => s.paragraphId)
-                .filter(id => taggedParagraphs.has(id)); // Only consider tagged paragraphs
+        // Format tags similar to the personalized version, but relative to canonical content
+        const formattedTags = tags.map(tag => {
+            const config = TAG_CONFIG[tag.tagType] || {};
+            const requiresCustomText = config.requiresCustomText || false;
+            const selectionText = tag.selections.map(s => `"${s.text}"`).join(', ') || 'the general paragraph area';
+            const scoreText = tag.score !== 0 ? ` (Vote score: ${tag.score > 0 ? '+' + tag.score : tag.score})` : '';
 
-            if (paragraphIds.length <= 1) continue; // Skip if not spanning multiple tagged paragraphs
-
-            // Find the groups these paragraphs belong to
-            const groupsToMerge = new Set();
-            for (const id of paragraphIds) {
-                if (paragraphToGroup.has(id)) {
-                    groupsToMerge.add(paragraphToGroup.get(id));
-                }
+            if (requiresCustomText) {
+                return `  - Type: ${config.displayName || tag.tagType}
+    - Reader Suggestion: ${tag.customText || 'N/A'}
+    - Applied To: ${selectionText}${scoreText}
+    - AI Hint: ${config.aiHint || 'Incorporate this addition.'}`;
+            } else {
+                return `  - Reaction: ${config.displayName || tag.tagType}
+    - Applied To: ${selectionText}${scoreText}
+    - AI Hint: ${config.aiHint || 'Consider this reaction.'}`;
             }
-
-            if (groupsToMerge.size <= 1) continue; // Already in the same group
-
-            // Merge all groups into the first one
-            const groupsArray = Array.from(groupsToMerge);
-            const targetGroup = groupsArray[0];
-
-            for (let i = 1; i < groupsArray.length; i++) {
-                const sourceGroup = groupsArray[i];
-                // Add all paragraphs from source to target
-                for (const id of sourceGroup) {
-                    targetGroup.add(id);
-                    paragraphToGroup.set(id, targetGroup);
-                }
-                // Remove the source group
-                const index = groups.indexOf(sourceGroup);
-                if (index > -1) {
-                    groups.splice(index, 1);
-                }
-            }
-        }
-
-        // Step 2: Convert the Sets to objects with paragraph data
-        return groups.map(group => {
-            const paragraphIds = Array.from(group);
-            const paragraphs = paragraphIds.map(id => {
-                return {
-                    id,
-                    ...taggedParagraphs.get(id)
-                };
-            });
-
-            return {
-                paragraphIds,
-                paragraphs
-            };
-        });
-    }
-
-    /**
-     * Makes an API call to get AI contribution for a group of paragraphs
-     * @param {Object} group Group of paragraphs to send to AI
-     * @returns {Promise<string>} AI's response with the improved paragraphs
-     */
-    async getAIContribution(group) {
-        // Extract full text of the paragraph group
-        const fullText = group.paragraphs.map(p => p.text).join('\n\n');
-
-        // Format paragraph information for the AI with different handling for reactions vs additions
-        const paragraphsInfo = group.paragraphs.map(p => {
-            // Separate tags into reactions and additions
-            const reactionTags = p.tags.filter(tag => !tag.requiresCustomText);
-            const additionTags = p.tags.filter(tag => tag.requiresCustomText);
-
-            // Format reactions
-            const reactionsText = reactionTags.length > 0 ?
-                `Reactions: ${reactionTags.map(tag => `
-  - One reader reacted with "${TAG_CONFIG[tag.type]?.displayName || tag.type}" to ${tag.selections.length > 0 ? `"${tag.selections[0].text}"` : 'this paragraph'} ${TAG_CONFIG[tag.type]?.aiHint}. ${tag.score !== 0 ? ` (Vote score: ${tag.score > 0 ? '+' + tag.score : tag.score})` : ''}`).join('\n')}` : '';
-
-            // Format additions
-            const additionsText = additionTags.length > 0 ?
-                `Additions: ${additionTags.map(tag => `
-  - Type: ${TAG_CONFIG[tag.type]?.displayName || tag.type}. ${TAG_CONFIG[tag.type]?.aiHint}. ${tag.score !== 0 ? ` (Vote score: ${tag.score > 0 ? '+' + tag.score : tag.score})` : ''}${tag.customText ? `
-  - Custom Note: "${tag.customText}"` : ''}
-  - Selections: ${tag.selections.map(s => `"${s.text}"`).join(', ')}`).join('\n')}` : '';
-
-            return `
-Paragraph ${p.id}:
-Text: ${p.text}
-${reactionsText}
-${additionsText}`;
         }).join('\n');
 
-        console.log(paragraphsInfo);
+        const prompt = `You are an expert content editor. Improve the following text based *only* on the provided user feedback (tags).
 
-        // Construct the prompt with guidance on how to handle reactions vs additions
-        const prompt = `You are an expert in content improvement. Your task is to improve specific paragraphs based on user tags.
+Content to Improve:
+---
+${canonicalContent}
+---
 
-Paragraphs to improve:
-${fullText}
+User Feedback:
+${formattedTags}
 
-Paragraph details with tags:
-${paragraphsInfo}
-
-Instructions for handling different types of feedback:
-1. For REACTIONS (like Agree, Disagree, Insightful, Confusing, etc.):
-   - Consider these as reader feedback
-   - Tags with higher vote scores (e.g., +3, +5) should be given more weight than those with lower or negative scores
-   - If multiple readers reacted the same way, consider it stronger feedback
-   - Only modify paragraphs if you believe the reactions justify changes
-   - If no changes are needed, return the original paragraph text exactly
-
-2. For ADDITIONS (like Source, Counterpoint, Example, Clarification):
-   - These represent specific content that readers want incorporated
-   - Prioritize additions with higher vote scores
-   - Always incorporate these additions in a natural way
-   - Maintain the paragraph's original meaning while enhancing it with the additions
-
-Return ONLY the improved paragraphs, maintaining their original structure but incorporating the changes requested by the tags.
-The number of paragraphs in your response should match the number of input paragraphs.
-Do not add any explanations, preambles, or additional content - just return the improved paragraphs directly.`;
+Instructions:
+1.  Analyze the feedback (tags) provided.
+2.  Modify the "Content to Improve" by incorporating the feedback.
+    - Prioritize feedback with higher vote scores.
+    - Integrate 'Addition' tags (Source, Counterpoint, Example, Clarification).
+    - Adjust text based on 'Reaction' tags (Agree, Disagree, Confusing) only if the reaction clearly warrants a change.
+3.  Return *only* the updated content in plain markdown format.
+4.  Do not include the feedback list or any explanations in your response.
+5.  If no changes are necessary based on the feedback, return the original "Content to Improve" exactly.`;
 
         try {
             const response = await fetch('/api/ask-openrouter', {
@@ -189,26 +83,70 @@ Do not add any explanations, preambles, or additional content - just return the 
                 },
                 body: JSON.stringify({ prompt })
             });
-
             const data = await response.json();
 
             if (response.ok && data.response) {
                 return this.cleanAndFormatMarkdown(data.response);
             } else {
-                throw new Error(data.error || 'Failed to get AI response');
+                throw new Error(data.error || 'Failed to get AI response for standard contribution');
             }
         } catch (error) {
-            console.error("AI contribution error:", error);
+            console.error("Standard AI contribution error:", error);
             throw error;
         }
     }
 
     /**
-     * Clean and format markdown content
+     * Main contribution processing method. Determines the context (standard vs. personalized)
+     * and calls the appropriate AI function.
+     *
+     * @param {object} context - Information about the current state.
+     * @param {string} context.canonicalContent - The current canonical markdown.
+     * @param {boolean} context.isPersonalizedView - Flag indicating if tags were applied in personalized view.
+     * @param {string} [context.personalizedContent] - Personalized markdown (if isPersonalizedView is true).
+     * @param {object} [context.personalizationPrefs] - Personalization prefs (if isPersonalizedView is true).
+     * @returns {Promise<string>} The updated canonical markdown content.
+     */
+    async contribute(context) {
+        // Collect tags from the currently displayed view using TagManager
+        const tags = this.collectTags();
+
+        if (!tags || tags.length === 0) {
+            throw new Error('No tags found to contribute.');
+        }
+
+        let updatedCanonicalContent;
+
+        if (context.isPersonalizedView) {
+            // Use the specific AI function for integrating from personalized view
+            if (!context.personalizedContent) {
+                throw new Error('Personalized content is required for contributing from personalized view.');
+            }
+            updatedCanonicalContent = await integratePersonalizedContribution(
+                context.canonicalContent,
+                context.personalizedContent,
+                tags, // Tags are relative to personalizedContent
+                context.personalizationPrefs
+            );
+        } else {
+            // Use the standard contribution processing
+            updatedCanonicalContent = await this.processStandardContribution(
+                context.canonicalContent,
+                tags // Tags are relative to canonicalContent
+            );
+        }
+
+        // Return the final, updated canonical markdown
+        return this.cleanAndFormatMarkdown(updatedCanonicalContent);
+    }
+
+    /**
+     * Clean and format markdown content. (Kept for now, consider moving to utils)
      * @param {string} text Raw markdown text
      * @returns {string} Cleaned and formatted markdown
      */
     cleanAndFormatMarkdown(text) {
+        // Basic cleaning, may need refinement based on model output
         return text
             .replace(/```[^`]*```/g, '')     // Remove code blocks with their content
             .replace(/```/g, '')             // Remove any remaining code block markers
@@ -218,151 +156,12 @@ Do not add any explanations, preambles, or additional content - just return the 
             .trim();
     }
 
-    /**
-     * Processes all paragraph groups and gets AI contributions
-     * @param {Array} groups Array of paragraph groups
-     * @returns {Promise<Array>} Array of results with original IDs and new content
-     */
-    async processContributions(groups) {
-        const results = [];
-
-        for (const group of groups) {
-            try {
-                const aiResponse = await this.getAIContribution(group);
-
-                results.push({
-                    group,
-                    content: aiResponse
-                });
-            } catch (error) {
-                console.error(`Error processing group with paragraphs ${group.paragraphIds.join(', ')}:`, error);
-                throw error;
-            }
-        }
-
-        return results;
-    }
-
-    /**
-     * Main contribution processing method
-     * @returns {Promise<string>} Combined result of all contributions
-     */
-    async contribute() {
-        // Collect all paragraphs with tags
-        const taggedParagraphs = this.collectTaggedParagraphs();
-
-        if (taggedParagraphs.size === 0) {
-            throw new Error('No tagged paragraphs found');
-        }
-
-        // Form paragraph groups based on tag relationships
-        const groups = this.formParagraphGroups(taggedParagraphs);
-
-        // Process each group and get AI contributions
-        const results = await this.processContributions(groups);
-
-        // Combine all results into a single document
-        return this.combineResults(results);
-    }
-
-    /**
-     * Combines all contribution results into a single markdown document
-     * @param {Array} results Array of contribution results
-     * @returns {string} Combined markdown document
-     */
-    combineResults(results) {
-        // Get the current content
-        const contentContainer = document.getElementById('content');
-        const contentClone = contentContainer.cloneNode(true);
-
-        // Replace each paragraph with its AI-improved version
-        results.forEach(result => {
-            const { group, content } = result;
-
-            // Split the AI response into paragraphs
-            const improvedParagraphs = content.split('\n\n');
-
-            // Make sure we have the right number of paragraphs
-            if (improvedParagraphs.length === group.paragraphs.length) {
-                // Replace each paragraph
-                group.paragraphs.forEach((paragraph, index) => {
-                    const paragraphElement = contentClone.querySelector(`#${paragraph.id}`);
-                    if (paragraphElement) {
-                        // Save the improved text for this paragraph
-                        const improvedText = improvedParagraphs[index];
-                        paragraphElement.textContent = improvedText;
-                        paragraphElement.dataset.originalText = improvedText;
-                    }
-                });
-            } else {
-                console.error('AI response paragraph count mismatch:',
-                    {expected: group.paragraphs.length, received: improvedParagraphs.length});
-            }
-        });
-
-        // Create a proper markdown document that preserves the order of everything
-        const markdownOutput = this.convertToMarkdown(contentClone);
-        return markdownOutput;
-    }
-
-    /**
-     * Converts HTML content to properly formatted markdown
-     * @param {HTMLElement} container The HTML container element
-     * @returns {string} Properly formatted markdown
-     */
-    convertToMarkdown(container) {
-        // Get all content elements in correct order
-        const allElements = this.getAllContentElements(container);
-
-        // Create markdown output with proper structure
-        let markdownOutput = '';
-
-        for (const element of allElements) {
-            if (element.tagName.match(/^H[1-6]$/)) {
-                // Headers - ensure a blank line before for proper separation
-                const level = parseInt(element.tagName[1]);
-                const prefix = '#'.repeat(level);
-                markdownOutput += `\n${prefix} ${element.textContent.trim()}\n\n`;
-            } else if (element.classList.contains('paragraph')) {
-                // Paragraphs - ensure proper spacing for markdown paragraphs
-                // Add an extra space at the end of the paragraph to force proper paragraph rendering
-                markdownOutput += `${element.textContent.trim()} \n\n`;
-            }
-        }
-
-        return markdownOutput.trim();
-    }
-
-    /**
-     * Gets all content elements in document order
-     * @param {HTMLElement} container The container element
-     * @returns {Array} Array of content elements
-     */
-    getAllContentElements(container) {
-        // Get all headings and paragraphs in the correct order
-        const elements = [];
-        const selector = 'h1, h2, h3, h4, h5, h6, .paragraph';
-
-        // Use TreeWalker to get elements in document order
-        const walker = document.createTreeWalker(
-            container,
-            NodeFilter.SHOW_ELEMENT,
-            {
-                acceptNode: function(node) {
-                    if (node.matches(selector)) {
-                        return NodeFilter.FILTER_ACCEPT;
-                    }
-                    return NodeFilter.FILTER_SKIP;
-                }
-            }
-        );
-
-        let currentNode = walker.currentNode;
-
-        while (currentNode = walker.nextNode()) {
-            elements.push(currentNode);
-        }
-
-        return elements;
-    }
+    // Removed methods that are no longer appropriate for this class:
+    // - collectTaggedParagraphs (replaced by collectTags)
+    // - formParagraphGroups (grouping logic might shift or be handled differently)
+    // - getAIContribution (replaced by processStandardContribution & integratePersonalizedContribution)
+    // - processContributions (handled within the new contribute method)
+    // - combineResults (should be handled by the caller, e.g., Sidebar/StateManager updating content)
+    // - convertToMarkdown (responsibility of the caller/renderer)
+    // - getAllContentElements (DOM manipulation, belongs elsewhere)
 }

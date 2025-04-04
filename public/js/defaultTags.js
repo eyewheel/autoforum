@@ -1,9 +1,11 @@
+import { TAG_TYPES } from './constants.js'; // Import the valid types
+
 export const DEFAULT_TAGS = {
     // No default tags for post1
     'post2': {
         "p-1": [{
             id: "tag-1",
-            tagType: "definition",
+            tagType: TAG_TYPES.CLARIFICATION,
             selections: [{
                 paragraphId: "p-1",
                 startOffset: 0,
@@ -12,7 +14,7 @@ export const DEFAULT_TAGS = {
         }],
         "p-2": [{
             id: "tag-2",
-            tagType: "important",
+            tagType: TAG_TYPES.INSIGHTFUL,
             selections: [{
                 paragraphId: "p-2",
                 startOffset: 0,
@@ -23,7 +25,7 @@ export const DEFAULT_TAGS = {
     'post3': {
         "p-1": [{
             id: "tag-1",
-            tagType: "definition",
+            tagType: TAG_TYPES.CLARIFICATION,
             selections: [{
                 paragraphId: "p-1",
                 startOffset: 1,
@@ -32,7 +34,7 @@ export const DEFAULT_TAGS = {
         }],
         "p-3": [{
             id: "tag-2",
-            tagType: "important",
+            tagType: TAG_TYPES.INSIGHTFUL,
             selections: [{
                 paragraphId: "p-3",
                 startOffset: 0,
@@ -41,7 +43,7 @@ export const DEFAULT_TAGS = {
         }],
         "p-4": [{
             id: "tag-3",
-            tagType: "question",
+            tagType: TAG_TYPES.CONFUSING,
             selections: [{
                 paragraphId: "p-4",
                 startOffset: 0,
@@ -50,7 +52,7 @@ export const DEFAULT_TAGS = {
         }],
         "p-8": [{
             id: "tag-4",
-            tagType: "definition",
+            tagType: TAG_TYPES.CLARIFICATION,
             selections: [{
                 paragraphId: "p-8",
                 startOffset: 0,

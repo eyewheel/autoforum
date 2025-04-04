@@ -146,17 +146,20 @@ export class TagRenderer {
     }
 
     renderParagraph(elementId) {
-        // Check if we're in personalization mode
+        // Check if we're in personalization mode - REMOVED this check
+        // Visibility should be controlled by parent components based on state
+        /*
         if (window.contentVersion && window.contentVersion.hasPersonalization) {
             if (this.sidebarElement) {
                 this.sidebarElement.style.display = 'none';
             }
             return;
         }
+        */
 
-        // Show the tag sidebar if it was hidden
+        // Ensure the tag sidebar is visible (if it exists)
         if (this.sidebarElement) {
-            this.sidebarElement.style.display = 'block';
+            this.sidebarElement.style.display = 'block'; // Or flex, depending on CSS
         }
 
         const element = document.getElementById(elementId);
@@ -378,6 +381,11 @@ export class TagRenderer {
 
     createTagIcon(tag) {
         const config = TAG_CONFIG[tag.tagType];
+        if (!config) {
+            console.warn(`Invalid or missing tagType found: "${tag.tagType}" for tag ID: ${tag.id}. Skipping icon creation.`);
+            return document.createElement('span');
+        }
+
         const icon = document.createElement('span');
         
         // Use base class only, don't include type-specific classes
