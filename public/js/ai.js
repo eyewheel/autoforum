@@ -12,6 +12,8 @@ import { TAG_CONFIG } from './constants.js'; // Needed for tag details in prompt
  * @param {object} preferences User's personalization preferences (e.g., { prompt: "Explain like I'm five" }).
  * @returns {Promise<string>} Personalized markdown content.
  */
+
+ // Assuming preferences object has a 'prompt' key
 export async function personalizeContent(canonicalContent, preferences) {
     const prompt = `You are an expert in personalized content adaptation. Your task is to adapt the following content according to the user's preferences while maintaining its core meaning and educational value.
 
@@ -19,7 +21,7 @@ Canonical Content:
 ${canonicalContent}
 
 User's personalization preferences:
-${preferences.prompt} // Assuming preferences object has a 'prompt' key
+${preferences.prompt}
 
 Important:
 1. Strictly adhere to the user's personalization prompt.
