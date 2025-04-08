@@ -9,7 +9,7 @@ AI is currently at this stage. We have access to much more capabilities than we'
 
 ## What is this project?
 
-AutoForum is an experiment in AI-assisted collaboration and wiki/forum-like structures. We were inspired by Sofi van Hanen's [autoblog](https://github.com/sofvanh/autoblog), which provides additional background context. 
+AutoForum is an experiment in AI-assisted collaboration and wiki/forum-like structures. We were inspired by Sofi Vanhanen's [autoblog](https://github.com/sofvanh/autoblog), which provides additional background context. 
 
 Current online discussions and knowledge platforms have a fundamental limitation: they rely on explicit user actions to improve content. On platforms like Wikipedia, tags like [citation needed] or [clarify] require another human to manually hunt down references or rephrase sentences. On forums like LessWrong or Reddit, feedback is limited to comments and votes, which don't directly improve the original content.
 
